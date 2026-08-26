@@ -56,7 +56,7 @@ class SoundFX {
       filter.type = "lowpass";
       filter.frequency.setValueAtTime(900, this.ctx.currentTime);
 
-      gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
 
       osc.connect(filter);
@@ -84,7 +84,7 @@ class SoundFX {
           const gain = this.ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(160 + Math.random() * 140, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
           osc.connect(gain);
           gain.connect(this.ctx.destination);
@@ -108,14 +108,14 @@ class SoundFX {
         const source = this.ctx.createBufferSource();
         source.buffer = this.cashBuffer;
         const gain = this.ctx.createGain();
-        gain.gain.value = 0.75;
+        gain.gain.value = 0.50;
         source.connect(gain);
         gain.connect(this.ctx.destination);
         source.start();
       } else {
         // Instant HTML5 Audio fallback
         const audio = new Audio(cashRegisterMp3);
-        audio.volume = 0.75;
+        audio.volume = 0.50;
         audio.play().catch(() => {});
       }
     } catch (e) {
@@ -141,7 +141,7 @@ class SoundFX {
       filter.type = "lowpass";
       filter.frequency.setValueAtTime(550, t);
 
-      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.setValueAtTime(0.14, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
 
       osc.connect(filter);
@@ -166,7 +166,7 @@ class SoundFX {
       osc.type = "sine";
       osc.frequency.setValueAtTime(450, this.ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(900, this.ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      gain.gain.setValueAtTime(0.10, this.ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -194,7 +194,7 @@ class SoundFX {
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(220, t);
       osc.frequency.exponentialRampToValueAtTime(55, t + 0.4);
-      gain.gain.setValueAtTime(0.25, t);
+      gain.gain.setValueAtTime(0.16, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -216,7 +216,7 @@ class SoundFX {
           const gain = this.ctx.createGain();
           osc.type = "triangle";
           osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.setValueAtTime(0.10, this.ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
           osc.connect(gain);
           gain.connect(this.ctx.destination);

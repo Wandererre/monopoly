@@ -14,6 +14,7 @@ import ChatDrawer from "./components/ChatDrawer.jsx";
 import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
 import SoundboardModal from "./components/SoundboardModal.jsx";
+import CardsBrowserModal from "./components/CardsBrowserModal.jsx";
 import { PLAYER_TOKENS, BOARD_TILES } from "../server/data/boardData.js";
 import {
   Copy,
@@ -65,6 +66,7 @@ export default function App() {
 
   // Modals & Drawers
   const [deedsModalOpen, setDeedsModalOpen] = useState(false);
+  const [cardsModalOpen, setCardsModalOpen] = useState(null); // null | "chance" | "community"
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
   const [inspectedTile, setInspectedTile] = useState(null);
@@ -495,7 +497,7 @@ export default function App() {
     <div className="min-h-screen bg-[#1F2421] text-slate-100 flex flex-col justify-between select-none relative overflow-hidden">
       {/* Top Seamless Bar */}
       <header className="px-4 pt-3 pb-8 z-30 flex items-center justify-between gap-4 overflow-visible">
-        {/* Left: Monopoly Logo */}
+        {/* Left: Monopoly Logo & Cards Button */}
         <div className="flex items-center gap-2">
           <div className="bg-[#ED1B24] text-white font-black px-3 py-1 rounded-sm border-2 border-black text-sm font-['Cinzel'] tracking-wider shadow-md">
             MONOPOLY
@@ -503,6 +505,17 @@ export default function App() {
           <span className="text-[11px] uppercase font-black tracking-widest text-slate-300 hidden md:inline">
             INDIA
           </span>
+          <button
+            onClick={() => {
+              sounds.playCardDraw();
+              setCardsModalOpen("chance");
+            }}
+            className="px-2.5 py-1 rounded-xl bg-black/40 hover:bg-black/70 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer ml-1"
+            title="Browse all Chance and Community Chest cards"
+          >
+            <span>🃏</span>
+            <span className="hidden sm:inline">Cards</span>
+          </button>
         </div>
 
         {/* Center: Wider Player Chips with Glowing Speaking Rings & Stacked Floating Delta Badges */}
@@ -672,6 +685,7 @@ export default function App() {
           isMyTurn={isMyTurn}
           rotationAngle={boardRotation}
           onMovementComplete={handleMovementComplete}
+          onOpenCards={(tab) => setCardsModalOpen(tab)}
         />
       </main>
 
@@ -858,6 +872,13 @@ export default function App() {
         cooldownRemaining={soundboardCooldown}
         isRoomAudioBusy={isRoomAudioBusy}
         busySenderName={busySenderName}
+      />
+
+      {/* Chance & Community Chest Cards Browser Modal */}
+      <CardsBrowserModal
+        isOpen={Boolean(cardsModalOpen)}
+        initialTab={cardsModalOpen || "chance"}
+        onClose={() => setCardsModalOpen(null)}
       />
 
       {/* Drawers */}

@@ -14,7 +14,10 @@ export default function Lobby({
   isHost
 }) {
   const [name, setName] = useState(() => localStorage.getItem("vyapar_player_name") || "");
-  const [selectedToken, setSelectedToken] = useState(() => localStorage.getItem("vyapar_player_token") || "hat");
+  const [selectedToken, setSelectedToken] = useState(() => {
+    const rand = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
+    return rand ? rand.id : "hat";
+  });
   const [startingCash, setStartingCash] = useState(1500);
   const [joinCode, setJoinCode] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
@@ -252,8 +255,8 @@ export default function Lobby({
             <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5">
               Select Token
             </label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {PLAYER_TOKENS.slice(0, 4).map((tok) => {
+            <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto">
+              {PLAYER_TOKENS.map((tok) => {
                 const isSelected = selectedToken === tok.id;
                 return (
                   <button

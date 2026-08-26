@@ -1,4 +1,4 @@
-import { BOARD_TILES, COLOR_GROUPS, CHANCE_CARDS, COMMUNITY_CARDS } from "../data/boardData.js";
+import { BOARD_TILES, COLOR_GROUPS, CHANCE_CARDS, COMMUNITY_CARDS, PLAYER_TOKENS } from "../data/boardData.js";
 
 export class MonopolyEngine {
   constructor(roomId, hostPlayer, settings = {}) {
@@ -9,7 +9,8 @@ export class MonopolyEngine {
       maxHousesPerProperty: 5 // 5 = Hotel
     };
 
-    this.players = [this.initPlayer(hostPlayer, true)];
+    this.players = [];
+    this.players.push(this.initPlayer(hostPlayer, true));
     this.currentTurnIndex = 0;
     this.dice = [1, 1];
     this.lastDiceSum = 2;
@@ -39,10 +40,26 @@ export class MonopolyEngine {
   }
 
   initPlayer(playerData, isHost = false) {
+    const usedTokens = new Set(this.players.map(p => p.token));
+    const usedColors = new Set(this.players.map(p => p.color));
+
+    // Find requested token or pick next unused token from PLAYER_TOKENS
+    let chosenToken = PLAYER_TOKENS.find(t => t.id === playerData.token);
+    if (!chosenToken || usedTokens.has(chosenToken.id)) {
+      chosenToken = PLAYER_TOKENS.find(t => !usedTokens.has(t.id)) || PLAYER_TOKENS[this.players.length % PLAYER_TOKENS.length];
+    }
+
+    // Find requested color or token color or next unused color
+    let chosenColor = playerData.color || chosenToken.color;
+    if (usedColors.has(chosenColor)) {
+      const availToken = PLAYER_TOKENS.find(t => !usedColors.has(t.color));
+      if (availToken) chosenColor = availToken.color;
+    }
+
     return {
       id: playerData.id,
       name: playerData.name,
-      token: playerData.token || "hat",
+      token: chosenToken.id,
       money: this.settings.startingCash,
       position: 0,
       inJail: false,
@@ -52,7 +69,7 @@ export class MonopolyEngine {
       isHost: isHost,
       isConnected: true,
       socketId: playerData.socketId || null,
-      color: playerData.color || "#EF4444"
+      color: chosenColor
     };
   }
 

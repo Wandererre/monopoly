@@ -15,7 +15,8 @@ export default function Board({
   playerId,
   isMyTurn,
   rotationAngle = 0,
-  onMovementComplete
+  onMovementComplete,
+  onOpenCards
 }) {
   const { players = [], properties = {}, dice = [1, 1], phase, pendingAction } = gameState || {};
   const myPlayer = players.find((p) => p.id === playerId);
@@ -161,17 +162,33 @@ export default function Board({
         {/* Compact Authentic 680x680 Mint Felt Center */}
         <rect x={CORNER} y={CORNER} width={1000 - 2 * CORNER} height={1000 - 2 * CORNER} fill="#CBE7D0" stroke="#000" strokeWidth="3" />
 
-        {/* Center Decks Outlines */}
-        <g transform={`translate(${CORNER + 50}, ${CORNER + 40}) rotate(-5)`}>
-          <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(0, 114, 187, 0.08)" stroke="#0072BB" strokeWidth="2.5" strokeDasharray="6 4" />
-          <text x="70" y="30" textAnchor="middle" fontSize="12" fontWeight="900" fill="#0072BB">COMMUNITY CHEST</text>
-          <text x="70" y="68" textAnchor="middle" fontSize="28">📦</text>
+        {/* Center Decks Outlines - Clickable to View Cards */}
+        <g
+          transform={`translate(${CORNER + 50}, ${CORNER + 40}) rotate(-5)`}
+          onClick={() => {
+            sounds.playCardDraw();
+            if (onOpenCards) onOpenCards("community");
+          }}
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(0, 114, 187, 0.12)" stroke="#0072BB" strokeWidth="2.5" strokeDasharray="6 4" />
+          <text x="70" y="28" textAnchor="middle" fontSize="11" fontWeight="900" fill="#0072BB">COMMUNITY CHEST</text>
+          <text x="70" y="64" textAnchor="middle" fontSize="28">📦</text>
+          <text x="70" y="80" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#0072BB">CLICK TO VIEW</text>
         </g>
 
-        <g transform={`translate(${1000 - CORNER - 190}, ${CORNER + 40}) rotate(5)`}>
-          <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(247, 147, 30, 0.08)" stroke="#F7931E" strokeWidth="2.5" strokeDasharray="6 4" />
-          <text x="70" y="30" textAnchor="middle" fontSize="13" fontWeight="900" fill="#F7931E">CHANCE</text>
-          <text x="70" y="70" textAnchor="middle" fontSize="38" fontWeight="900" fill="#F7931E">?</text>
+        <g
+          transform={`translate(${1000 - CORNER - 190}, ${CORNER + 40}) rotate(5)`}
+          onClick={() => {
+            sounds.playCardDraw();
+            if (onOpenCards) onOpenCards("chance");
+          }}
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(247, 147, 30, 0.12)" stroke="#F7931E" strokeWidth="2.5" strokeDasharray="6 4" />
+          <text x="70" y="28" textAnchor="middle" fontSize="13" fontWeight="900" fill="#F7931E">CHANCE</text>
+          <text x="70" y="64" textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">?</text>
+          <text x="70" y="80" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#F7931E">CLICK TO VIEW</text>
         </g>
 
         {/* 40 Tiles */}

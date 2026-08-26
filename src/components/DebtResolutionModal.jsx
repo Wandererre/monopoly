@@ -43,7 +43,7 @@ export default function DebtResolutionModal({
             <AlertTriangle className="w-6 h-6 animate-bounce" />
             <div>
               <h2 className="text-xl font-black tracking-tight">YOU ARE IN DEBT!</h2>
-              <p className="text-xs text-red-100">Raise cash by trading, mortgaging properties, or selling buildings</p>
+              <p className="text-xs text-red-100">Raise cash by trading with players, mortgaging, or selling buildings</p>
             </div>
           </div>
           <div className="px-3 py-1 bg-black text-white font-mono font-black text-sm rounded-lg">
@@ -54,21 +54,21 @@ export default function DebtResolutionModal({
         {/* Action Body */}
         <div className="p-4 overflow-y-auto flex-1 space-y-4 bg-slate-50">
           <p className="text-xs text-slate-700 font-semibold leading-relaxed">
-            You cannot end your turn or roll while in debt. Raise enough cash to bring your balance back to M0 by trading properties with other players, mortgaging, or selling houses.
+            You cannot end your turn or roll while in debt. Raise enough cash to bring your balance back to M0 by trading properties/cards with other players, mortgaging deeds, or selling houses.
           </p>
 
-          {/* Trade with Players Section */}
-          {otherPlayers.length > 0 && myOwnedTileIds.length > 0 && (
-            <div className="p-3 bg-blue-50 border-2 border-blue-300 rounded-xl space-y-2">
+          {/* Trade with Players Section - ALWAYS AVAILABLE */}
+          {otherPlayers.length > 0 && (
+            <div className="p-3.5 bg-blue-50 border-2 border-blue-400 rounded-xl space-y-2.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black uppercase text-blue-900 flex items-center gap-1.5">
-                  <ArrowRightLeft className="w-4 h-4 text-blue-600" /> Propose Trade / Sell Properties for Cash
+                  <ArrowRightLeft className="w-4 h-4 text-blue-600" /> Propose Trade / Sell to Other Players
                 </h4>
               </div>
-              <p className="text-[11px] text-blue-800 font-medium">
-                Sell your deeds or trade with fellow players to raise emergency funds:
+              <p className="text-xs text-blue-800 font-medium leading-tight">
+                Trade your properties, get-out-of-jail cards, or negotiate emergency funds with active players:
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2 pt-1">
                 {otherPlayers.map((other) => (
                   <button
                     key={other.id}
@@ -76,9 +76,10 @@ export default function DebtResolutionModal({
                       sounds.playCardDraw();
                       if (onProposeTrade) onProposeTrade(other);
                     }}
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl border border-black shadow flex items-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs rounded-xl border-2 border-black shadow flex items-center gap-1.5 cursor-pointer transition"
                   >
-                    <span>Trade with {other.name}</span>
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>Trade with {other.name} (M{other.money})</span>
                   </button>
                 ))}
               </div>
@@ -110,7 +111,7 @@ export default function DebtResolutionModal({
                           sounds.playCashGain();
                           onSellHouse(tile.id);
                         }}
-                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-black font-black rounded-lg border border-black"
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-black font-black rounded-lg border border-black cursor-pointer"
                       >
                         Sell (+M{refund})
                       </button>
@@ -139,7 +140,7 @@ export default function DebtResolutionModal({
                         sounds.playCashGain();
                         onMortgage(tile.id);
                       }}
-                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg border border-black shadow-sm"
+                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg border border-black shadow-sm cursor-pointer"
                     >
                       Mortgage (+M{tile.mortgage})
                     </button>
@@ -150,21 +151,33 @@ export default function DebtResolutionModal({
           )}
 
           {housesToSell.length === 0 && canMortgage.length === 0 && (
-            <div className="p-4 bg-red-100 border-2 border-red-400 rounded-xl text-center text-xs text-red-800 font-bold">
-              You have no further properties to mortgage or buildings to sell. You must trade or declare bankruptcy.
+            <div className="p-3.5 bg-amber-50 border-2 border-amber-400 rounded-xl text-center text-xs text-amber-900 font-bold">
+              You have no further unmortgaged properties or buildings to sell. Propose a trade with another player above or declare bankruptcy below.
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-3 bg-slate-200 border-t-2 border-black flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-600">No way out?</span>
+        <div className="p-3 bg-slate-200 border-t-2 border-black flex items-center justify-between gap-2 flex-wrap">
+          {otherPlayers.length > 0 && (
+            <button
+              onClick={() => {
+                sounds.playCardDraw();
+                if (onProposeTrade) onProposeTrade(otherPlayers[0]);
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl border-2 border-black shadow flex items-center gap-1.5 cursor-pointer transition"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              <span>Propose Trade to Player</span>
+            </button>
+          )}
+
           <button
             onClick={() => {
               sounds.playJail();
               onDeclareBankruptcy();
             }}
-            className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-xl border-2 border-black shadow flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-black text-xs rounded-xl border-2 border-black shadow flex items-center gap-1.5 cursor-pointer ml-auto transition"
           >
             <Skull className="w-4 h-4" /> Declare Bankruptcy & Surrender
           </button>
