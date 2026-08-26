@@ -442,6 +442,20 @@ class VoiceChatManager {
     return this.isMuted;
   }
 
+  setVoiceVolume(volumePercent) {
+    const vol = Math.max(0, Math.min(100, volumePercent)) / 100;
+    this.voiceVolume = vol;
+    this.peers.forEach(({ audioEl, gainNode }) => {
+      if (audioEl) {
+        audioEl.volume = vol;
+        audioEl.muted = this.isDeafened;
+      }
+      if (gainNode) {
+        gainNode.gain.value = this.isDeafened ? 0 : vol;
+      }
+    });
+  }
+
   toggleDeafen() {
     this.isDeafened = !this.isDeafened;
     this.peers.forEach(({ audioEl, gainNode }) => {
@@ -449,7 +463,7 @@ class VoiceChatManager {
         audioEl.muted = this.isDeafened;
       }
       if (gainNode) {
-        gainNode.gain.value = this.isDeafened ? 0 : 1.0;
+        gainNode.gain.value = this.isDeafened ? 0 : (this.voiceVolume || 1.0);
       }
     });
 

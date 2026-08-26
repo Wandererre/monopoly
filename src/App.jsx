@@ -58,8 +58,10 @@ export default function App() {
   const [voiceStates, setVoiceStates] = useState(new Map());
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
+  const [voiceVolume, setVoiceVolume] = useState(100);
 
   // Soundboard State
+  const [soundboardVolume, setSoundboardVolume] = useState(70);
   const [soundboardModalOpen, setSoundboardModalOpen] = useState(false);
   const [soundboardCooldown, setSoundboardCooldown] = useState(0);
   const [soundboardToast, setSoundboardToast] = useState(null);
@@ -238,6 +240,7 @@ export default function App() {
 
       try {
         const audio = new Audio(data.clipFile);
+        audio.volume = isSoundMuted ? 0 : Math.max(0, Math.min(1.0, (soundboardVolume / 100) * 0.65));
         activeAudioRef.current = audio;
         setIsRoomAudioBusy(true);
         setBusySenderName(data.senderName);
@@ -897,6 +900,18 @@ export default function App() {
         onToggleMic={handleToggleMic}
         isDeafened={isDeafened}
         onToggleDeafen={handleToggleDeafen}
+        voiceVolume={voiceVolume}
+        onChangeVoiceVolume={(vol) => {
+          setVoiceVolume(vol);
+          voiceManager.setVoiceVolume(vol);
+        }}
+        soundboardVolume={soundboardVolume}
+        onChangeSoundboardVolume={(vol) => {
+          setSoundboardVolume(vol);
+          if (activeAudioRef.current) {
+            activeAudioRef.current.volume = isSoundMuted ? 0 : Math.max(0, Math.min(1.0, (vol / 100) * 0.65));
+          }
+        }}
         isSoundMuted={isSoundMuted}
         onToggleSoundFX={handleToggleSoundFX}
         isHost={isHost}
