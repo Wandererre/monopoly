@@ -756,6 +756,29 @@ export class MonopolyEngine {
     };
   }
 
+  endGameByHost(playerId) {
+    const hostPlayer = this.players.find(p => p.id === playerId);
+    if (!hostPlayer || !hostPlayer.isHost) {
+      return { success: false, error: "Only the host can end the game." };
+    }
+    if (this.phase === "GAME_OVER") {
+      return { success: false, error: "Game is already over." };
+    }
+
+    const activePlayers = this.players.filter(p => !p.bankrupt);
+    if (activePlayers.length > 0) {
+      activePlayers.sort((a, b) => this.calculateNetWorth(b) - this.calculateNetWorth(a));
+      this.winner = activePlayers[0];
+    } else {
+      this.winner = hostPlayer;
+    }
+
+    this.phase = "GAME_OVER";
+    this.addLog(`🛑 Game was ended early by the host (${hostPlayer.name}).`);
+    this.addLog(`🏆 Winner by Net Worth: ${this.winner.name} (M${this.calculateNetWorth(this.winner)})!`);
+    return { success: true, winner: this.winner };
+  }
+
   calculateNetWorth(player) {
     if (player.bankrupt) return 0;
     let total = player.money;

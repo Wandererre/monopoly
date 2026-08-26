@@ -13,7 +13,7 @@ import ChatDrawer from "./components/ChatDrawer.jsx";
 import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
 import { PLAYER_TOKENS } from "../server/data/boardData.js";
-import { Copy, Check, Volume2, VolumeX, MessageSquare, ScrollText, Building2, ArrowRightLeft, ShieldAlert, Wifi, WifiOff, RotateCw, AlertTriangle } from "lucide-react";
+import { Copy, Check, Volume2, VolumeX, MessageSquare, ScrollText, Building2, ArrowRightLeft, ShieldAlert, Wifi, WifiOff, RotateCw, AlertTriangle, StopCircle } from "lucide-react";
 
 export default function App() {
   const [storedUser] = useState(() => getStoredPlayer());
@@ -291,6 +291,14 @@ export default function App() {
     setIsMuted(next);
   };
 
+  const handleHostEndGame = () => {
+    if (window.confirm("End the game now? The richest player by Net Worth will be crowned winner!")) {
+      socket.emit("host-end-game", { roomId, playerId }, (res) => {
+        if (res && !res.success) alert(res.error);
+      });
+    }
+  };
+
   const handlePlayAgain = () => {
     clearPlayerRoomSession();
     setRoomId("");
@@ -386,8 +394,19 @@ export default function App() {
           })}
         </div>
 
-        {/* Right: Minimal Invite, Sound, Connection */}
+        {/* Right: Minimal Invite, Host End Game, Sound, Connection */}
         <div className="flex items-center gap-2">
+          {isHost && gameState.gameStarted && gameState.phase !== "GAME_OVER" && (
+            <button
+              onClick={handleHostEndGame}
+              className="px-3 py-1.5 rounded-xl bg-red-950/90 hover:bg-red-800 text-red-200 hover:text-white font-bold text-xs border border-red-600 transition flex items-center gap-1 shadow cursor-pointer"
+              title="Host Only: End Game & Crown Winner by Net Worth"
+            >
+              <StopCircle className="w-3.5 h-3.5 text-red-400" />
+              <span className="hidden sm:inline">End Game</span>
+            </button>
+          )}
+
           <button
             onClick={handleCopyLink}
             className="px-3 py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"

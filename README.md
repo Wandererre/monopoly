@@ -1,4 +1,4 @@
-﻿# 🇮🇳 Indian Monopoly (Multiplayer Online Board Game)
+# 🇮🇳 Indian Monopoly (Multiplayer Online Board Game)
 
 A real-time, authentic multiplayer Monopoly board game built with **React**, **Tailwind CSS**, **Node.js**, **Express**, and **Socket.io**.
 

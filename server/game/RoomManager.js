@@ -75,6 +75,17 @@ export class RoomManager {
     this.io.emit("public-rooms-list", this.getPublicRooms());
   }
 
+  endGameByHost(roomId, playerId) {
+    const engine = this.getRoom(roomId);
+    if (!engine) return { success: false, error: "Room not found." };
+    const res = engine.endGameByHost(playerId);
+    if (res.success) {
+      this.broadcastGameState(roomId);
+      this.broadcastPublicRooms();
+    }
+    return res;
+  }
+
   handleDisconnect(socketId) {
     const mapping = this.socketToRoom.get(socketId);
     if (!mapping) return;
@@ -83,6 +94,17 @@ export class RoomManager {
     const engine = this.rooms.get(roomId);
     if (engine) {
       engine.removePlayer(playerId);
+
+      // If all players in the room are now disconnected, close the room
+      const anyConnected = engine.players.some((p) => p.isConnected);
+      if (!anyConnected) {
+        console.log(`[Room Closed] All players disconnected from room ${roomId}. Room deleted.`);
+        this.rooms.delete(roomId);
+        this.broadcastPublicRooms();
+        this.socketToRoom.delete(socketId);
+        return;
+      }
+
       this.broadcastGameState(roomId);
       this.broadcastPublicRooms();
 
@@ -108,6 +130,14 @@ export class RoomManager {
 
   tick() {
     this.rooms.forEach((engine, roomId) => {
+      // Auto-cleanup orphaned rooms where no one is connected
+      const anyConnected = engine.players.some((p) => p.isConnected);
+      if (!anyConnected) {
+        this.rooms.delete(roomId);
+        this.broadcastPublicRooms();
+        return;
+      }
+
       if (!engine.gameStarted || engine.phase === "GAME_OVER") return;
 
       const current = engine.getCurrentPlayer();

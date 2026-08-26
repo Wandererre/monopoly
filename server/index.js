@@ -280,6 +280,12 @@ io.on("connection", (socket) => {
     roomManager.broadcastGameState(roomId);
   });
 
+  // 19. Host End Game Early
+  socket.on("host-end-game", ({ roomId, playerId }, callback) => {
+    const res = roomManager.endGameByHost(roomId, playerId);
+    if (callback) callback(res);
+  });
+
   // 19. Send In-Game Chat
   socket.on("send-chat", ({ roomId, senderName, message }) => {
     const cleanRoom = (roomId || "").toUpperCase();
