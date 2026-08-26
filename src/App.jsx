@@ -874,6 +874,7 @@ export default function App() {
         <GameOverModal
           winner={gameState.winner}
           players={gameState.players}
+          gameState={gameState}
           onPlayAgain={handlePlayAgain}
         />
       )}

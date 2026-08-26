@@ -97,9 +97,14 @@ class SoundFX {
     }
   }
 
-  // Authentic Recorded Cash Register Sound Effect
+  // Authentic Recorded Cash Register (Ka-Ching) Sound Effect
   playCashRegister() {
     if (this.muted) return;
+    const now = Date.now();
+    if (this.lastCashRegisterTime && now - this.lastCashRegisterTime < 300) {
+      return; // Single crisp trigger per transaction event
+    }
+    this.lastCashRegisterTime = now;
     try {
       this.init();
       if (!this.ctx) return;
@@ -108,14 +113,14 @@ class SoundFX {
         const source = this.ctx.createBufferSource();
         source.buffer = this.cashBuffer;
         const gain = this.ctx.createGain();
-        gain.gain.value = 0.50;
+        gain.gain.value = 0.45;
         source.connect(gain);
         gain.connect(this.ctx.destination);
         source.start();
       } else {
         // Instant HTML5 Audio fallback
         const audio = new Audio(cashRegisterMp3);
-        audio.volume = 0.50;
+        audio.volume = 0.45;
         audio.play().catch(() => {});
       }
     } catch (e) {
@@ -123,65 +128,12 @@ class SoundFX {
     }
   }
 
-  // Money Gone / Paid Sound
-  playMoneyGone() {
-    if (this.muted) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const t = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(380, t);
-      osc.frequency.exponentialRampToValueAtTime(150, t + 0.22);
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(550, t);
-
-      gain.gain.setValueAtTime(0.14, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(t);
-      osc.stop(t + 0.24);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-
-  playCardDraw() {
-    if (this.muted) return;
-    try {
-      this.init();
-      if (!this.ctx) return;
-
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(450, this.ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(900, this.ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.10, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start();
-      osc.stop(this.ctx.currentTime + 0.15);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-
+  // Unified single transaction sound for all money gains, payments, property purchases, and taxes
   playCashGain() { this.playCashRegister(); }
-  playCashPaid() { this.playMoneyGone(); }
-  playBuy() { this.playMoneyGone(); }
+  playCashPaid() { this.playCashRegister(); }
+  playBuy() { this.playCashRegister(); }
   playMoney() { this.playCashRegister(); }
-  playCard() { this.playCardDraw(); }
+  playMoneyGone() { this.playCashRegister(); }
 
   playJail() {
     if (this.muted) return;
