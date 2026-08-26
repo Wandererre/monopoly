@@ -306,6 +306,18 @@ io.on("connection", (socket) => {
     });
   });
 
+  // 20. Discord-Style Soundboard Broadcast
+  socket.on("play-soundboard", ({ roomId, clipId, clipName, clipFile, senderName }) => {
+    const cleanRoom = (roomId || "").toUpperCase();
+    io.to(cleanRoom).emit("soundboard-triggered", {
+      clipId,
+      clipName,
+      clipFile,
+      senderName,
+      timestamp: Date.now()
+    });
+  });
+
   // 20. WebRTC Voice Signaling
   socket.on("voice-join", ({ roomId, playerId }, callback) => {
     const cleanRoom = (roomId || "").toUpperCase();

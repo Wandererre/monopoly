@@ -13,6 +13,7 @@ import CardPopup from "./components/CardPopup.jsx";
 import ChatDrawer from "./components/ChatDrawer.jsx";
 import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
+import SoundboardModal from "./components/SoundboardModal.jsx";
 import { PLAYER_TOKENS, BOARD_TILES } from "../server/data/boardData.js";
 import {
   Copy,
@@ -32,7 +33,8 @@ import {
   RotateCw,
   AlertTriangle,
   StopCircle,
-  Radio
+  Radio,
+  Music2
 } from "lucide-react";
 
 export default function App() {
@@ -53,6 +55,11 @@ export default function App() {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
 
+  // Soundboard State
+  const [soundboardModalOpen, setSoundboardModalOpen] = useState(false);
+  const [soundboardCooldown, setSoundboardCooldown] = useState(0);
+  const [soundboardToast, setSoundboardToast] = useState(null);
+
   // Modals & Drawers
   const [deedsModalOpen, setDeedsModalOpen] = useState(false);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -67,6 +74,16 @@ export default function App() {
   const prevMoneyRef = useRef({});
   const prevPositionsRef = useRef({});
   const pendingTxRef = useRef(null);
+
+  // Soundboard 10s cooldown ticker
+  useEffect(() => {
+    if (soundboardCooldown > 0) {
+      const timer = setInterval(() => {
+        setSoundboardCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [soundboardCooldown]);
 
   // Auto-connect WebRTC voice chat upon entering room
   useEffect(() => {
@@ -197,16 +214,33 @@ export default function App() {
       }
     }
 
+    function onSoundboardTriggered(data) {
+      try {
+        const audio = new Audio(data.clipFile);
+        audio.volume = 0.85;
+        audio.play().catch(() => {});
+      } catch (e) {
+        console.warn("Soundboard audio error", e);
+      }
+
+      setSoundboardToast(data);
+      setTimeout(() => {
+        setSoundboardToast(null);
+      }, 3500);
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("game-state", onGameState);
     socket.on("new-chat", onNewChat);
+    socket.on("soundboard-triggered", onSoundboardTriggered);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("game-state", onGameState);
       socket.off("new-chat", onNewChat);
+      socket.off("soundboard-triggered", onSoundboardTriggered);
     };
   }, [playerId, playerName, playerToken, chatDrawerOpen]);
 
@@ -307,6 +341,18 @@ export default function App() {
 
   const handleSendChat = (message) => {
     socket.emit("send-chat", { roomId, senderName: playerName, message });
+  };
+
+  const handlePlaySoundboardClip = (clip) => {
+    if (soundboardCooldown > 0) return;
+    setSoundboardCooldown(10);
+    socket.emit("play-soundboard", {
+      roomId,
+      clipId: clip.id,
+      clipName: clip.name,
+      clipFile: clip.file,
+      senderName: playerName
+    });
   };
 
   const handleCopyLink = () => {
@@ -595,7 +641,19 @@ export default function App() {
         />
       </main>
 
-      {/* Bottom Left Floating Bar: Live Match Status Ticker + Chat & Log Buttons */}
+      {/* Floating Soundboard Activity Notification */}
+      {soundboardToast && (
+        <div className="fixed bottom-24 left-4 z-50 animate-in slide-in-from-left-4 fade-in duration-200">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-950/90 border-2 border-emerald-500 text-white font-bold text-xs shadow-2xl shadow-emerald-500/30 backdrop-blur-md">
+            <Volume2 className="w-4 h-4 text-emerald-400 animate-bounce" />
+            <span>
+              <strong className="text-emerald-300">{soundboardToast.senderName}</strong> played <span className="font-black underline capitalize">{soundboardToast.clipName}</span>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Bottom Left Floating Bar: Live Match Status Ticker + Soundboard + Chat & Log Buttons */}
       <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2 max-w-sm sm:max-w-md">
         {/* Live Match Update Text Ticker */}
         <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-black/85 border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold text-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -607,12 +665,27 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Soundboard Button */}
+          <button
+            onClick={() => setSoundboardModalOpen(true)}
+            className="relative px-3 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 hover:border-emerald-500/60 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+          >
+            <Music2 className="w-4 h-4 text-emerald-400" />
+            <span>Soundboard</span>
+            {soundboardCooldown > 0 && (
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-black font-mono font-black text-[9px] animate-pulse">
+                {soundboardCooldown}s
+              </span>
+            )}
+          </button>
+
+          {/* Chat Button */}
           <button
             onClick={() => {
               setChatDrawerOpen(true);
               setHasUnreadChat(false);
             }}
-            className="relative px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            className="relative px-3 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
           >
             <MessageSquare className="w-4 h-4 text-blue-400" />
             <span>Chat</span>
@@ -621,9 +694,10 @@ export default function App() {
             )}
           </button>
 
+          {/* Activity Log Button */}
           <button
             onClick={() => setActivityDrawerOpen(true)}
-            className="px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            className="px-3 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
           >
             <ScrollText className="w-4 h-4 text-amber-400" />
             <span>Log</span>
@@ -736,6 +810,14 @@ export default function App() {
           onPlayAgain={handlePlayAgain}
         />
       )}
+
+      {/* Discord Style Soundboard Modal */}
+      <SoundboardModal
+        isOpen={soundboardModalOpen}
+        onClose={() => setSoundboardModalOpen(false)}
+        onPlaySound={handlePlaySoundboardClip}
+        cooldownRemaining={soundboardCooldown}
+      />
 
       {/* Drawers */}
       <ChatDrawer
