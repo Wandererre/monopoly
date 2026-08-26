@@ -149,7 +149,7 @@ export default function Board({
 
   return (
     <div
-      className="relative w-full max-w-[840px] aspect-square mx-auto bg-[#121614] rounded-2xl border-4 border-black shadow-2xl shadow-black select-none transition-transform duration-500 ease-in-out p-1 sm:p-2"
+      className="relative w-full max-w-[min(92vw,calc(100vh-185px))] aspect-square mx-auto bg-[#121614] rounded-2xl border-4 border-black shadow-2xl shadow-black select-none transition-transform duration-500 ease-in-out p-1 sm:p-2"
       style={{ transform: `rotate(${rotationAngle}deg)` }}
     >
       <svg
