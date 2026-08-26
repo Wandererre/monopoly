@@ -297,9 +297,90 @@ io.on("connection", (socket) => {
     });
   });
 
+  // 20. WebRTC Voice Signaling
+  socket.on("voice-join", ({ roomId, playerId }, callback) => {
+    const cleanRoom = (roomId || "").toUpperCase();
+    const voiceRoom = `voice:${cleanRoom}`;
+    socket.join(voiceRoom);
+
+    // Find other sockets in the voice room
+    const clientsInVoice = io.sockets.adapter.rooms.get(voiceRoom) || new Set();
+    const existingPeers = [];
+
+    clientsInVoice.forEach((sId) => {
+      if (sId !== socket.id) {
+        const mapping = roomManager.socketToRoom.get(sId);
+        existingPeers.push({
+          socketId: sId,
+          playerId: mapping ? mapping.playerId : null
+        });
+      }
+    });
+
+    // Notify others that this player joined voice
+    socket.to(voiceRoom).emit("voice-peer-joined", {
+      socketId: socket.id,
+      playerId
+    });
+
+    if (callback) {
+      callback({ success: true, existingPeers });
+    }
+  });
+
+  socket.on("voice-offer", ({ targetSocketId, offer, callerPlayerId }) => {
+    io.to(targetSocketId).emit("voice-offer", {
+      callerSocketId: socket.id,
+      callerPlayerId,
+      offer
+    });
+  });
+
+  socket.on("voice-answer", ({ targetSocketId, answer, answeringPlayerId }) => {
+    io.to(targetSocketId).emit("voice-answer", {
+      answeringSocketId: socket.id,
+      answeringPlayerId,
+      answer
+    });
+  });
+
+  socket.on("voice-ice-candidate", ({ targetSocketId, candidate }) => {
+    io.to(targetSocketId).emit("voice-ice-candidate", {
+      fromSocketId: socket.id,
+      candidate
+    });
+  });
+
+  socket.on("voice-state-update", ({ roomId, playerId, isMuted, isDeafened, isSpeaking }) => {
+    const cleanRoom = (roomId || "").toUpperCase();
+    io.to(cleanRoom).emit("voice-state-update", {
+      socketId: socket.id,
+      playerId,
+      isMuted,
+      isDeafened,
+      isSpeaking
+    });
+  });
+
+  socket.on("voice-leave", ({ roomId, playerId }) => {
+    const cleanRoom = (roomId || "").toUpperCase();
+    socket.leave(`voice:${cleanRoom}`);
+    socket.to(`voice:${cleanRoom}`).emit("voice-peer-left", {
+      socketId: socket.id,
+      playerId
+    });
+  });
+
   // Handle Disconnection
   socket.on("disconnect", () => {
     console.log(`[Socket Disconnected] ID: ${socket.id}`);
+    const mapping = roomManager.socketToRoom.get(socket.id);
+    if (mapping) {
+      io.to(`voice:${mapping.roomId}`).emit("voice-peer-left", {
+        socketId: socket.id,
+        playerId: mapping.playerId
+      });
+    }
     roomManager.handleDisconnect(socket.id);
   });
 });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { socket, getStoredPlayer, savePlayerSession, clearPlayerRoomSession } from "./utils/socket.js";
 import { sounds } from "./utils/audio.js";
+import { voiceManager } from "./utils/webrtc.js";
 import Lobby from "./components/Lobby.jsx";
 import Board from "./components/Board.jsx";
 import DeedsBrowserModal from "./components/DeedsBrowserModal.jsx";
@@ -13,7 +14,25 @@ import ChatDrawer from "./components/ChatDrawer.jsx";
 import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
 import { PLAYER_TOKENS } from "../server/data/boardData.js";
-import { Copy, Check, Volume2, VolumeX, MessageSquare, ScrollText, Building2, ArrowRightLeft, ShieldAlert, Wifi, WifiOff, RotateCw, AlertTriangle, StopCircle } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff,
+  Headphones,
+  MessageSquare,
+  ScrollText,
+  Building2,
+  ArrowRightLeft,
+  ShieldAlert,
+  Wifi,
+  WifiOff,
+  RotateCw,
+  AlertTriangle,
+  StopCircle
+} from "lucide-react";
 
 export default function App() {
   const [storedUser] = useState(() => getStoredPlayer());
@@ -24,9 +43,14 @@ export default function App() {
   const [gameState, setGameState] = useState(null);
   const [chats, setChats] = useState([]);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [connected, setConnected] = useState(socket.connected);
   const [boardRotation, setBoardRotation] = useState(0);
+
+  // Voice Chat State
+  const [voiceStates, setVoiceStates] = useState(new Map());
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
 
   // Modals & Drawers
   const [deedsModalOpen, setDeedsModalOpen] = useState(false);
@@ -43,6 +67,18 @@ export default function App() {
   const prevMoneyRef = useRef({});
   const prevPositionsRef = useRef({});
   const pendingTxRef = useRef(null);
+
+  // Auto-connect WebRTC voice chat upon entering room
+  useEffect(() => {
+    if (roomId && socket.connected) {
+      voiceManager.joinVoice(socket, roomId, playerId, (newStates) => {
+        setVoiceStates(new Map(newStates));
+      });
+    }
+    return () => {
+      voiceManager.leaveVoice();
+    };
+  }, [roomId, playerId]);
 
   // Synchronized Multi-Transaction & Audio Handling
   useEffect(() => {
@@ -286,9 +322,22 @@ export default function App() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleToggleMute = () => {
+  const handleToggleSoundFX = () => {
     const next = sounds.toggleMute();
-    setIsMuted(next);
+    setIsSoundMuted(next);
+  };
+
+  const handleToggleMic = () => {
+    const muted = voiceManager.toggleMic();
+    setIsMicMuted(muted);
+  };
+
+  const handleToggleDeafen = () => {
+    const deafened = voiceManager.toggleDeafen();
+    setIsDeafened(deafened);
+    if (deafened) {
+      setIsMicMuted(true);
+    }
   };
 
   const handleHostEndGame = () => {
@@ -301,6 +350,7 @@ export default function App() {
 
   const handlePlayAgain = () => {
     clearPlayerRoomSession();
+    voiceManager.leaveVoice();
     setRoomId("");
     setGameState(null);
     window.location.href = window.location.origin;
@@ -339,22 +389,27 @@ export default function App() {
           </span>
         </div>
 
-        {/* Center: Wider Player Chips with Stacked Under-the-Name Floating Delta Badges */}
+        {/* Center: Wider Player Chips with Glowing Speaking Rings & Stacked Floating Delta Badges */}
         <div className="flex items-center gap-4 py-1 px-2 overflow-visible">
           {gameState.players?.map((p) => {
             const isTurn = p.id === gameState.currentPlayerId;
             const isYou = p.id === playerId;
             const tok = PLAYER_TOKENS.find((t) => t.id === p.token) || PLAYER_TOKENS[0];
             const pTxList = transactions[p.id] || [];
+            const vState = voiceStates.get(p.id);
+            const isSpeaking = vState?.isSpeaking;
+            const isMuted = vState?.isMuted;
 
             return (
               <div key={p.id} className="relative flex flex-col items-center overflow-visible">
                 <button
                   onClick={() => setDeedsModalOpen(true)}
                   title={`Click to view ${p.name}'s deeds`}
-                  className={`relative flex items-center gap-3 px-4 py-2 rounded-2xl border-2 transition whitespace-nowrap shadow-xl cursor-pointer ${
+                  className={`relative flex items-center gap-3 px-4 py-2 rounded-2xl border-2 transition-all duration-200 whitespace-nowrap shadow-xl cursor-pointer ${
                     p.bankrupt
                       ? "bg-slate-900 border-slate-800 opacity-40"
+                      : isSpeaking
+                      ? "bg-emerald-300 text-black border-black font-black ring-4 ring-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.9)] scale-105"
                       : isTurn
                       ? "bg-amber-400 text-black border-black font-black ring-4 ring-amber-300/60 scale-105"
                       : isYou
@@ -363,7 +418,17 @@ export default function App() {
                   }`}
                 >
                   <span className="text-xl">{tok.emoji}</span>
-                  <span className="text-sm font-black max-w-[120px] truncate">{p.name}</span>
+                  <div className="flex items-center gap-1.5 max-w-[130px]">
+                    <span className="text-sm font-black truncate">{p.name}</span>
+                    {isSpeaking && (
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-600 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                      </span>
+                    )}
+                    {isMuted && <MicOff className="w-3.5 h-3.5 text-red-600 shrink-0" />}
+                  </div>
+
                   <span className={`text-sm font-mono font-black px-2 py-0.5 rounded-lg ${p.money < 0 ? "bg-red-600 text-white animate-pulse" : "text-emerald-900 bg-black/10"}`}>
                     M{p.money}
                   </span>
@@ -372,7 +437,7 @@ export default function App() {
                   {p.money < 0 && <AlertTriangle className="w-4 h-4 text-red-600 animate-bounce" />}
                 </button>
 
-                {/* Multiple Floating Transaction Deltas (Stacked under the nameplate) */}
+                {/* Multiple Floating Transaction Deltas */}
                 {pTxList.length > 0 && (
                   <div className="absolute -bottom-8 flex flex-col items-center gap-1 pointer-events-none z-50">
                     {pTxList.map((tx) => (
@@ -394,8 +459,44 @@ export default function App() {
           })}
         </div>
 
-        {/* Right: Minimal Invite, Host End Game, Sound, Connection */}
+        {/* Right Controls: Voice Chat (Mic + Deafen), SFX, Host End Game, Invite */}
         <div className="flex items-center gap-2">
+          {/* 1. Voice Chat Mic Button */}
+          <button
+            onClick={handleToggleMic}
+            title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
+            className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+              isMicMuted
+                ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                : "bg-emerald-600/20 border-emerald-500 text-emerald-400 hover:bg-emerald-600/30 shadow-emerald-500/20 shadow"
+            }`}
+          >
+            {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+
+          {/* 2. Voice Chat Speaker / Deafen Button */}
+          <button
+            onClick={handleToggleDeafen}
+            title={isDeafened ? "Undeafen Audio" : "Deafen Voice Chat"}
+            className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+              isDeafened
+                ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                : "bg-black/40 hover:bg-black/60 text-slate-200 border-slate-700"
+            }`}
+          >
+            <Headphones className={`w-4 h-4 ${isDeafened ? "text-red-400 line-through opacity-70" : "text-emerald-400"}`} />
+          </button>
+
+          {/* 3. Game SFX Mute */}
+          <button
+            onClick={handleToggleSoundFX}
+            title={isSoundMuted ? "Unmute Game SFX" : "Mute Game SFX"}
+            className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 border border-slate-700 transition cursor-pointer"
+          >
+            {isSoundMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
+          </button>
+
+          {/* 4. Host Only: End Game */}
           {isHost && gameState.gameStarted && gameState.phase !== "GAME_OVER" && (
             <button
               onClick={handleHostEndGame}
@@ -407,6 +508,7 @@ export default function App() {
             </button>
           )}
 
+          {/* 5. Invite Share Link */}
           <button
             onClick={handleCopyLink}
             className="px-3 py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
@@ -415,13 +517,7 @@ export default function App() {
             <span className="hidden sm:inline">{copiedLink ? "Copied!" : "Invite"}</span>
           </button>
 
-          <button
-            onClick={handleToggleMute}
-            className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 border border-slate-700 transition cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
-
+          {/* Connection Status Indicator */}
           <div
             className={`p-2 rounded-xl border flex items-center justify-center ${
               connected ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" : "bg-red-500/20 border-red-500 text-red-400 animate-pulse"
