@@ -73,8 +73,8 @@ export default function Lobby({
     }
 
     setIsCreating(true);
-    const tokenObj = PLAYER_TOKENS.find((t) => t.id === selectedToken) || PLAYER_TOKENS[0];
-    onCreateRoom(finalName, selectedToken, tokenObj.color, {
+    const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
+    onCreateRoom(finalName, randToken.id, randToken.color, {
       startingCash: Number(startingCash),
       turnTimerSeconds: 60
     });
@@ -91,8 +91,8 @@ export default function Lobby({
       setName(finalName);
     }
 
-    const tokenObj = PLAYER_TOKENS.find((t) => t.id === selectedToken) || PLAYER_TOKENS[0];
-    onJoinRoom(codeToJoin, finalName, selectedToken, tokenObj.color);
+    const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
+    onJoinRoom(codeToJoin, finalName, randToken.id, randToken.color);
   };
 
   const handleCopyLink = () => {
@@ -236,51 +236,23 @@ export default function Lobby({
         </div>
 
         {/* Player Profile Inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white p-4 rounded-2xl border-2 border-black shadow-sm">
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5">
+        <div className="bg-white p-4 rounded-2xl border-2 border-black shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
               Your Nickname
             </label>
-            <input
-              type="text"
-              placeholder="e.g. Rahul, Aman, Priya..."
-              value={name}
-              maxLength={20}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border-2 border-slate-300 text-slate-900 font-bold text-sm focus:outline-none focus:border-black"
-            />
+            <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+              🎲 Random piece assigned automatically
+            </span>
           </div>
-
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5">
-              Select Token
-            </label>
-            <div className="grid grid-cols-4 gap-1.5 max-h-36 overflow-y-auto">
-              {PLAYER_TOKENS.map((tok) => {
-                const isSelected = selectedToken === tok.id;
-                return (
-                  <button
-                    key={tok.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedToken(tok.id);
-                      sounds.playCardDraw();
-                    }}
-                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border-2 transition cursor-pointer ${
-                      isSelected
-                        ? "bg-[#CBE7D0] border-black ring-2 ring-black scale-105"
-                        : "bg-slate-50 border-slate-200 hover:border-black"
-                    }`}
-                  >
-                    <span className="text-xl">{tok.emoji}</span>
-                    <span className="text-[9px] font-black text-slate-800 truncate w-full text-center">
-                      {tok.name.split(" ")[0]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <input
+            type="text"
+            placeholder="e.g. Rahul, Aman, Priya..."
+            value={name}
+            maxLength={20}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border-2 border-slate-300 text-slate-900 font-bold text-sm focus:outline-none focus:border-black"
+          />
         </div>
 
         {/* Starting Cash Option */}
