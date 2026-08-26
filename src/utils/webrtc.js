@@ -7,7 +7,8 @@ const ICE_SERVERS = {
     { urls: "stun:stun2.l.google.com:19302" },
     { urls: "stun:stun3.l.google.com:19302" },
     { urls: "stun:stun4.l.google.com:19302" },
-    { urls: "stun:global.stun.twilio.com:3478" }
+    { urls: "stun:openrelay.metered.ca:80" },
+    { urls: "stun:stun.relay.metered.ca:80" }
   ]
 };
 
@@ -19,8 +20,9 @@ class VoiceChatManager {
     this.localStream = null;
     this.streamPromise = null;
     this.audioContext = null;
+    this.playbackAudioCtx = null;
     this.analyser = null;
-    this.peers = new Map(); // socketId -> { connection, playerId, audioEl }
+    this.peers = new Map(); // socketId -> { connection, playerId, audioEl, gainNode }
     this.voiceStates = new Map(); // playerId -> { isMuted, isDeafened, isSpeaking }
     
     this.isMuted = false;
@@ -33,11 +35,14 @@ class VoiceChatManager {
     this.speakingSilenceTimeout = null;
     this.analyserInterval = null;
 
-    // Universal user-interaction audio unlock listener for browser autoplay policies
+    // Universal audio unlock listener
     if (typeof window !== "undefined") {
       const unlockAudio = () => {
         if (this.audioContext && this.audioContext.state === "suspended") {
           this.audioContext.resume().catch(() => {});
+        }
+        if (this.playbackAudioCtx && this.playbackAudioCtx.state === "suspended") {
+          this.playbackAudioCtx.resume().catch(() => {});
         }
         this.peers.forEach(({ audioEl }) => {
           if (audioEl && audioEl.paused) {
@@ -47,6 +52,7 @@ class VoiceChatManager {
       };
       window.addEventListener("click", unlockAudio, { passive: true });
       window.addEventListener("touchstart", unlockAudio, { passive: true });
+      window.addEventListener("keydown", unlockAudio, { passive: true });
     }
   }
 
@@ -57,7 +63,7 @@ class VoiceChatManager {
     this.onVoiceStatesChange = onVoiceStatesChange;
     this.isActive = true;
 
-    // 1. Request Microphone Stream and store promise
+    // 1. Request Microphone Stream
     this.streamPromise = this.acquireMicrophone();
     await this.streamPromise;
 
@@ -71,14 +77,8 @@ class VoiceChatManager {
     // 2. Setup Socket Signaling Listeners
     this.setupSignalingListeners();
 
-    // 3. Emit voice-join to room
-    this.socket.emit("voice-join", { roomId, playerId }, (res) => {
-      if (res && res.success && res.existingPeers) {
-        res.existingPeers.forEach(({ socketId, playerId: peerPlayerId }) => {
-          this.initiatePeerConnection(socketId, peerPlayerId);
-        });
-      }
-    });
+    // 3. Emit voice-join to room (Existing peers in the room will initiate offers to this new peer)
+    this.socket.emit("voice-join", { roomId, playerId });
 
     this.broadcastVoiceState();
   }
@@ -169,7 +169,7 @@ class VoiceChatManager {
   setupSignalingListeners() {
     if (!this.socket) return;
 
-    // Another peer joined voice -> create offer
+    // Existing peer sees new peer joined -> existing peer initiates offer
     this.socket.on("voice-peer-joined", async ({ socketId, playerId }) => {
       await this.streamPromise;
       this.initiatePeerConnection(socketId, playerId);
@@ -199,7 +199,7 @@ class VoiceChatManager {
       const peer = this.peers.get(answeringSocketId);
       if (peer && peer.connection) {
         try {
-          if (peer.connection.signalingState !== "closed") {
+          if (peer.connection.signalingState !== "closed" && peer.connection.signalingState === "have-local-offer") {
             await peer.connection.setRemoteDescription(new RTCSessionDescription(answer));
           }
         } catch (err) {
@@ -254,11 +254,14 @@ class VoiceChatManager {
     audioEl.setAttribute("data-peer-socket", targetSocketId);
     document.body.appendChild(audioEl);
 
-    this.peers.set(targetSocketId, {
+    const peerObj = {
       connection: pc,
       playerId: targetPlayerId,
-      audioEl
-    });
+      audioEl,
+      gainNode: null
+    };
+
+    this.peers.set(targetSocketId, peerObj);
 
     // Attach local audio tracks
     if (this.localStream) {
@@ -270,12 +273,34 @@ class VoiceChatManager {
     // Handle incoming audio stream
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
-        audioEl.srcObject = event.streams[0];
+        const remoteStream = event.streams[0];
+        audioEl.srcObject = remoteStream;
         const playPromise = audioEl.play();
         if (playPromise !== undefined) {
           playPromise.catch((err) => {
             console.log("Audio autoplay prevented, will resume on click:", err);
           });
+        }
+
+        // Also route through Web Audio API for direct hardware output
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            if (!this.playbackAudioCtx || this.playbackAudioCtx.state === "closed") {
+              this.playbackAudioCtx = new AudioCtx();
+            }
+            if (this.playbackAudioCtx.state === "suspended") {
+              this.playbackAudioCtx.resume().catch(() => {});
+            }
+            const source = this.playbackAudioCtx.createMediaStreamSource(remoteStream);
+            const gainNode = this.playbackAudioCtx.createGain();
+            gainNode.gain.value = this.isDeafened ? 0 : 1.0;
+            source.connect(gainNode);
+            gainNode.connect(this.playbackAudioCtx.destination);
+            peerObj.gainNode = gainNode;
+          }
+        } catch (e) {
+          console.log("Web Audio routing fallback to audio element", e);
         }
       }
     };
@@ -357,9 +382,12 @@ class VoiceChatManager {
 
   toggleDeafen() {
     this.isDeafened = !this.isDeafened;
-    this.peers.forEach(({ audioEl }) => {
+    this.peers.forEach(({ audioEl, gainNode }) => {
       if (audioEl) {
         audioEl.muted = this.isDeafened;
+      }
+      if (gainNode) {
+        gainNode.gain.value = this.isDeafened ? 0 : 1.0;
       }
     });
 
@@ -398,6 +426,10 @@ class VoiceChatManager {
 
     if (this.audioContext && this.audioContext.state !== "closed") {
       this.audioContext.close().catch(() => {});
+    }
+
+    if (this.playbackAudioCtx && this.playbackAudioCtx.state !== "closed") {
+      this.playbackAudioCtx.close().catch(() => {});
     }
 
     this.peers.forEach((_, socketId) => this.closePeer(socketId));
