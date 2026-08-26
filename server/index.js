@@ -56,6 +56,29 @@ app.get("/api/room-check/:code", (req, res) => {
   });
 });
 
+app.post("/api/create-room", (req, res) => {
+  try {
+    const { hostData, settings } = req.body;
+    const { roomId, engine } = roomManager.createRoom(hostData, settings);
+    return res.json({ success: true, roomId, state: engine.getGameState() });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post("/api/join-room", (req, res) => {
+  try {
+    const { roomId, playerData } = req.body;
+    const result = roomManager.joinRoom(roomId, playerData);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    return res.json({ success: true, roomId: result.roomId, state: result.engine.getGameState() });
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Socket.io Events
 io.on("connection", (socket) => {
   console.log(`[Socket Connected] ID: ${socket.id}`);

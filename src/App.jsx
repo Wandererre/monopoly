@@ -321,27 +321,42 @@ export default function App() {
       settings: settings || { startingCash: 1500, turnTimerSeconds: 15 }
     };
 
-    const emitCreate = () => {
-      socket.emit("create-room", payload, (res) => {
-        if (res && res.success) {
-          setRoomId(res.roomId);
-          setGameState(res.state);
-          savePlayerSession(name, token, res.roomId);
-        } else {
-          alert(res?.error || "Failed to create room. Please try again.");
-        }
-      });
+    let handled = false;
+    const onResult = (res) => {
+      if (handled) return;
+      if (res && res.success) {
+        handled = true;
+        setRoomId(res.roomId);
+        setGameState(res.state);
+        savePlayerSession(name, token, res.roomId);
+        if (!socket.connected) socket.connect();
+        socket.emit("reconnect-player", { roomId: res.roomId, playerId });
+      }
     };
 
+    // 1. Instant WebSocket emit
     if (socket.connected) {
-      emitCreate();
+      socket.emit("create-room", payload, onResult);
     } else {
       socket.connect();
-      socket.once("connect", emitCreate);
-      setTimeout(() => {
-        emitCreate();
-      }, 400);
+      socket.once("connect", () => {
+        if (!handled) socket.emit("create-room", payload, onResult);
+      });
     }
+
+    // 2. Instant HTTP REST Fallback (triggers in 250ms if socket is dormant)
+    setTimeout(() => {
+      if (!handled) {
+        fetch("/api/create-room", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then((r) => r.json())
+          .then(onResult)
+          .catch(() => {});
+      }
+    }, 250);
   };
 
   const handleJoinRoom = (code, name, token, color) => {
@@ -354,27 +369,45 @@ export default function App() {
       playerData: { id: playerId, name, token, color }
     };
 
-    const emitJoin = () => {
-      socket.emit("join-room", payload, (res) => {
-        if (res && res.success) {
-          setRoomId(res.roomId);
-          setGameState(res.state);
-          savePlayerSession(name, token, res.roomId);
-        } else {
-          alert(res?.error || "Failed to join room");
-        }
-      });
+    let handled = false;
+    const onResult = (res) => {
+      if (handled) return;
+      if (res && res.success) {
+        handled = true;
+        setRoomId(res.roomId);
+        setGameState(res.state);
+        savePlayerSession(name, token, res.roomId);
+        if (!socket.connected) socket.connect();
+        socket.emit("reconnect-player", { roomId: res.roomId, playerId });
+      } else if (res && !res.success) {
+        handled = true;
+        alert(res.error || "Failed to join room");
+      }
     };
 
+    // 1. Instant WebSocket emit
     if (socket.connected) {
-      emitJoin();
+      socket.emit("join-room", payload, onResult);
     } else {
       socket.connect();
-      socket.once("connect", emitJoin);
-      setTimeout(() => {
-        emitJoin();
-      }, 400);
+      socket.once("connect", () => {
+        if (!handled) socket.emit("join-room", payload, onResult);
+      });
     }
+
+    // 2. Instant HTTP REST Fallback
+    setTimeout(() => {
+      if (!handled) {
+        fetch("/api/join-room", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then((r) => r.json())
+          .then(onResult)
+          .catch(() => {});
+      }
+    }, 250);
   };
 
   const handleStartGame = () => {
