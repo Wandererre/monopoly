@@ -15,6 +15,7 @@ import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
 import SoundboardModal from "./components/SoundboardModal.jsx";
 import CardsBrowserModal from "./components/CardsBrowserModal.jsx";
+import SettingsModal from "./components/SettingsModal.jsx";
 import { PLAYER_TOKENS, BOARD_TILES } from "../server/data/boardData.js";
 import {
   Copy,
@@ -35,7 +36,9 @@ import {
   AlertTriangle,
   StopCircle,
   Radio,
-  Music2
+  Music2,
+  Settings,
+  Unplug
 } from "lucide-react";
 
 export default function App() {
@@ -65,6 +68,7 @@ export default function App() {
   const activeAudioRef = useRef(null);
 
   // Modals & Drawers
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [deedsModalOpen, setDeedsModalOpen] = useState(false);
   const [cardsModalOpen, setCardsModalOpen] = useState(null); // null | "chance" | "community"
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -265,9 +269,16 @@ export default function App() {
       }, data.lockDurationMs || 6000);
     }
 
+    function onTimerTick(data) {
+      if (data && typeof data.timeRemaining === "number") {
+        setGameState((prev) => (prev ? { ...prev, turnTimeRemaining: data.timeRemaining } : prev));
+      }
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("game-state", onGameState);
+    socket.on("timer-tick", onTimerTick);
     socket.on("new-chat", onNewChat);
     socket.on("soundboard-triggered", onSoundboardTriggered);
 
@@ -275,10 +286,26 @@ export default function App() {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("game-state", onGameState);
+      socket.off("timer-tick", onTimerTick);
       socket.off("new-chat", onNewChat);
       socket.off("soundboard-triggered", onSoundboardTriggered);
     };
   }, [playerId, playerName, playerToken, chatDrawerOpen]);
+
+  // Smooth live 1s local countdown tick for turn timer
+  useEffect(() => {
+    if (!gameState || !gameState.gameStarted || gameState.phase === "GAME_OVER") return;
+    const interval = setInterval(() => {
+      setGameState((prev) => {
+        if (!prev || !prev.gameStarted || prev.phase === "GAME_OVER") return prev;
+        if (prev.turnTimeRemaining && prev.turnTimeRemaining > 0) {
+          return { ...prev, turnTimeRemaining: prev.turnTimeRemaining - 1 };
+        }
+        return prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gameState?.gameStarted, gameState?.currentPlayerId, gameState?.phase]);
 
   const handleCreateRoom = (name, token, color, settings) => {
     setPlayerName(name);
@@ -511,7 +538,7 @@ export default function App() {
     <div className="min-h-screen bg-[#1F2421] text-slate-100 flex flex-col justify-between select-none relative overflow-hidden">
       {/* Top Seamless Bar - Pinned Left/Right Controls with Responsive Center Player Chips */}
       <header className="px-3 pt-2 pb-6 z-30 flex items-center justify-between gap-2 overflow-x-hidden w-full max-w-7xl mx-auto">
-        {/* Left: Monopoly Logo & Cards Button */}
+        {/* Left: Monopoly Logo */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
           <div className="bg-[#ED1B24] text-white font-black px-2.5 py-1 rounded-sm border-2 border-black text-xs sm:text-sm font-['Cinzel'] tracking-wider shadow-md">
             MONOPOLY
@@ -519,17 +546,6 @@ export default function App() {
           <span className="text-[10px] uppercase font-black tracking-widest text-slate-300 hidden lg:inline">
             INDIA
           </span>
-          <button
-            onClick={() => {
-              sounds.playCardDraw();
-              setCardsModalOpen("chance");
-            }}
-            className="px-2 py-1 rounded-xl bg-black/40 hover:bg-black/70 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer"
-            title="Browse all Chance and Community Chest cards"
-          >
-            <span>🃏</span>
-            <span className="hidden md:inline">Cards</span>
-          </button>
         </div>
 
         {/* Center: Responsive Player Chips (Scrolls smoothly if >4 players, never pushes controls off-screen) */}
@@ -555,6 +571,8 @@ export default function App() {
                   } ${
                     p.bankrupt
                       ? "bg-slate-900 border-slate-800 opacity-40"
+                      : !p.isConnected
+                      ? "bg-slate-800/80 text-slate-400 border-red-500/50"
                       : isSpeaking
                       ? "bg-emerald-300 text-black border-black font-black ring-4 ring-emerald-400 shadow-[0_0_25px_rgba(52,211,153,0.9)] scale-105"
                       : isTurn
@@ -576,6 +594,9 @@ export default function App() {
                       </span>
                     )}
                     {isMuted && <MicOff className="w-3 h-3 text-red-600 shrink-0" />}
+                    {!p.isConnected && (
+                      <Unplug className="w-3.5 h-3.5 text-red-500 shrink-0 animate-pulse" title="Player Disconnected" />
+                    )}
                   </div>
 
                   <span className={`font-mono font-black px-1.5 py-0.5 rounded-md ${
@@ -610,56 +631,9 @@ export default function App() {
           })}
         </div>
 
-        {/* Right Controls: Voice Chat (Mic + Deafen), SFX, Host End Game, Invite */}
+        {/* Right Controls: Clean Invite + Connection Status */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
-          {/* 1. Voice Chat Mic Button */}
-          <button
-            onClick={handleToggleMic}
-            title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
-            className={`p-1.5 sm:p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
-              isMicMuted
-                ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
-                : "bg-emerald-600/20 border-emerald-500 text-emerald-400 hover:bg-emerald-600/30 shadow-emerald-500/20 shadow"
-            }`}
-          >
-            {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          </button>
-
-          {/* 2. Voice Chat Speaker / Deafen Button */}
-          <button
-            onClick={handleToggleDeafen}
-            title={isDeafened ? "Undeafen Audio" : "Deafen Voice Chat"}
-            className={`p-1.5 sm:p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
-              isDeafened
-                ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
-                : "bg-black/40 hover:bg-black/60 text-slate-200 border-slate-700"
-            }`}
-          >
-            <Headphones className={`w-4 h-4 ${isDeafened ? "text-red-400 line-through opacity-70" : "text-emerald-400"}`} />
-          </button>
-
-          {/* 3. Game SFX Mute */}
-          <button
-            onClick={handleToggleSoundFX}
-            title={isSoundMuted ? "Unmute Game SFX" : "Mute Game SFX"}
-            className="p-1.5 sm:p-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 border border-slate-700 transition cursor-pointer"
-          >
-            {isSoundMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
-          </button>
-
-          {/* 4. Host Only: End Game */}
-          {isHost && gameState.gameStarted && gameState.phase !== "GAME_OVER" && (
-            <button
-              onClick={handleHostEndGame}
-              className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-red-950/90 hover:bg-red-800 text-red-200 hover:text-white font-bold text-xs border border-red-600 transition flex items-center gap-1 shadow cursor-pointer"
-              title="Host Only: End Game & Crown Winner by Net Worth"
-            >
-              <StopCircle className="w-3.5 h-3.5 text-red-400" />
-              <span className="hidden sm:inline">End Game</span>
-            </button>
-          )}
-
-          {/* 5. Invite Share Link */}
+          {/* Invite Share Link */}
           <button
             onClick={handleCopyLink}
             className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
@@ -723,7 +697,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Bottom Left Floating Bar: Live Match Status Ticker + Soundboard + Chat & Log Buttons */}
+      {/* Bottom Left Floating Bar: Live Match Status Ticker + Soundboard + Chat & Log & Settings Buttons */}
       <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2 max-w-sm sm:max-w-md">
         {/* Live Match Update Text Ticker */}
         <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-black/85 border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold text-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -775,6 +749,16 @@ export default function App() {
           >
             <ScrollText className="w-4 h-4 text-amber-400" />
             <span>Log</span>
+          </button>
+
+          {/* Settings Button */}
+          <button
+            onClick={() => setSettingsModalOpen(true)}
+            className="relative px-3 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 hover:border-slate-500 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            title="Settings (Audio, Voice, SFX, Host End Game)"
+          >
+            <Settings className="w-4 h-4 text-slate-300" />
+            <span className="hidden sm:inline">Settings</span>
           </button>
         </div>
       </div>
@@ -903,6 +887,20 @@ export default function App() {
         isOpen={Boolean(cardsModalOpen)}
         initialTab={cardsModalOpen || "chance"}
         onClose={() => setCardsModalOpen(null)}
+      />
+
+      {/* Settings Modal (Audio, Voice, SFX, Host End Game) */}
+      <SettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        isMicMuted={isMicMuted}
+        onToggleMic={handleToggleMic}
+        isDeafened={isDeafened}
+        onToggleDeafen={handleToggleDeafen}
+        isSoundMuted={isSoundMuted}
+        onToggleSoundFX={handleToggleSoundFX}
+        isHost={isHost}
+        onHostEndGame={handleHostEndGame}
       />
 
       {/* Drawers */}

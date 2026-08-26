@@ -149,11 +149,10 @@ export class RoomManager {
 
       if (engine.turnTimeRemaining > 0) {
         engine.turnTimeRemaining--;
+        this.io.to(roomId).emit("timer-tick", { timeRemaining: engine.turnTimeRemaining });
         if (engine.turnTimeRemaining === 0) {
           engine.autoPlayTurn();
           this.broadcastGameState(roomId);
-        } else if (engine.turnTimeRemaining % 5 === 0 || engine.turnTimeRemaining <= 5) {
-          this.io.to(roomId).emit("timer-tick", { timeRemaining: engine.turnTimeRemaining });
         }
       }
     });

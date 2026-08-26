@@ -5,7 +5,7 @@ export class MonopolyEngine {
     this.roomId = roomId;
     this.settings = {
       startingCash: settings.startingCash || 1500,
-      turnTimerSeconds: settings.turnTimerSeconds || 60,
+      turnTimerSeconds: settings.turnTimerSeconds || 15,
       maxHousesPerProperty: 5 // 5 = Hotel
     };
 

@@ -537,16 +537,28 @@ export default function Board({
             </div>
           </div>
 
-          {/* Turn Status */}
+          {/* Turn Status & Live Countdown Timer */}
           {gameState.currentPlayerId && (
-            <div className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
+            <div className="flex items-center gap-2 mt-1">
               {isMyTurn ? (
-                <span className="px-3 py-1 bg-white border-2 border-black rounded-full font-black text-black shadow-md">
-                  👉 YOUR TURN!
+                <span className="px-3 py-1 bg-amber-400 border-2 border-black rounded-full font-black text-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 animate-pulse">
+                  <span>👉 YOUR TURN!</span>
+                  {typeof gameState.turnTimeRemaining === "number" && (
+                    <span className="bg-black text-white px-2 py-0.5 rounded-full font-mono text-xs">
+                      ⏱️ {gameState.turnTimeRemaining}s
+                    </span>
+                  )}
                 </span>
               ) : (
-                <span>
-                  Current Turn: <strong className="text-slate-950">{players.find((p) => p.id === gameState.currentPlayerId)?.name}</strong>
+                <span className="px-3 py-1 bg-white/90 border border-black rounded-full text-xs font-bold text-slate-900 shadow-sm flex items-center gap-1.5">
+                  <span>
+                    Turn: <strong>{players.find((p) => p.id === gameState.currentPlayerId)?.name}</strong>
+                  </span>
+                  {typeof gameState.turnTimeRemaining === "number" && (
+                    <span className="bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded-md font-mono text-[11px] font-black">
+                      {gameState.turnTimeRemaining}s
+                    </span>
+                  )}
                 </span>
               )}
             </div>
@@ -562,9 +574,14 @@ export default function Board({
                 <button
                   onClick={handleRollClick}
                   disabled={isRollingAnimation}
-                  className="px-6 sm:px-8 py-2.5 sm:py-3 bg-[#ED1B24] hover:bg-red-700 text-white font-black text-sm sm:text-base rounded-xl border-2 border-black shadow-xl hover:scale-105 active:scale-95 transition cursor-pointer"
+                  className="px-6 sm:px-8 py-2.5 sm:py-3 bg-[#ED1B24] hover:bg-red-700 text-white font-black text-sm sm:text-base rounded-xl border-2 border-black shadow-xl hover:scale-105 active:scale-95 transition cursor-pointer flex items-center gap-2"
                 >
-                  🎲 ROLL DICE
+                  <span>🎲 ROLL DICE</span>
+                  {typeof gameState.turnTimeRemaining === "number" && (
+                    <span className="bg-black/30 px-2 py-0.5 rounded-lg text-xs font-mono">
+                      {gameState.turnTimeRemaining}s
+                    </span>
+                  )}
                 </button>
               )}
 
