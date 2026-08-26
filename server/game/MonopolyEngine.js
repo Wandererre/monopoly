@@ -68,7 +68,7 @@ export class MonopolyEngine {
   addLog(message, type = "info", metadata = {}) {
     const logEntry = {
       id: Date.now() + Math.random().toString(36).substr(2, 4),
-      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      time: new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit" }),
       message,
       type,
       metadata
@@ -377,25 +377,19 @@ export class MonopolyEngine {
 
   executeCardAction(player, card, deckName) {
     this.addLog(`${player.name} drew ${deckName}: "${card.title}"`, "card", { card });
+    
+    const isMovement = ["advance_tile", "go_to_jail", "move_relative"].includes(card.action);
+
     this.pendingAction = {
       type: "CARD_DRAWN",
       deckName,
-      card
+      card,
+      playerId: player.id,
+      needsResolution: isMovement
     };
 
+    // If it is non-movement, apply money/cards immediately
     switch (card.action) {
-      case "advance_tile":
-        if (card.targetTile !== undefined) {
-          const oldPos = player.position;
-          player.position = card.targetTile;
-          if (card.collectGo && card.targetTile < oldPos) {
-            player.money += 200;
-            this.addLog(`${player.name} passed GO and collected M200.`, "info");
-          }
-          const landedTile = BOARD_TILES[card.targetTile];
-          this.handleTileLanding(player, landedTile);
-        }
-        break;
       case "receive_money":
         player.money += card.amount;
         break;
@@ -432,13 +426,43 @@ export class MonopolyEngine {
       case "get_out_of_jail_card":
         player.jailCards++;
         break;
-      case "go_to_jail":
-        this.sendToJail(player);
-        break;
-      case "move_relative":
-        this.movePlayer(player, card.steps, false);
-        break;
     }
+  }
+
+  resolveCardAction(playerId) {
+    if (!this.pendingAction || this.pendingAction.type !== "CARD_DRAWN") {
+      return { success: true };
+    }
+
+    const { card, playerId: targetPid, needsResolution } = this.pendingAction;
+    const player = this.players.find(p => p.id === targetPid);
+    if (!player) {
+      this.pendingAction = null;
+      return { success: true };
+    }
+
+    if (needsResolution) {
+      if (card.action === "advance_tile" && card.targetTile !== undefined) {
+        const oldPos = player.position;
+        player.position = card.targetTile;
+        if (card.collectGo && card.targetTile < oldPos) {
+          player.money += 200;
+          this.addLog(`${player.name} passed GO and collected M200.`, "info");
+        }
+        const landedTile = BOARD_TILES[card.targetTile];
+        this.handleTileLanding(player, landedTile);
+        return { success: true, moved: true };
+      } else if (card.action === "go_to_jail") {
+        this.sendToJail(player);
+        return { success: true, moved: true };
+      } else if (card.action === "move_relative") {
+        this.movePlayer(player, card.steps, false);
+        return { success: true, moved: true };
+      }
+    }
+
+    this.pendingAction = null;
+    return { success: true };
   }
 
   deductMoney(payer, amount, recipient = null) {
@@ -581,8 +605,12 @@ export class MonopolyEngine {
     const toPlayer = this.players.find(p => p.id === trade.toPlayerId);
 
     if (!accept) {
-      this.addLog(`${toPlayer.name} declined the trade offer.`, "trade");
-      this.pendingTrade = null;
+      this.addLog(`❌ ${toPlayer.name} declined the trade offer from ${fromPlayer.name}.`, "trade");
+      this.pendingTrade = {
+        ...trade,
+        status: "DECLINED",
+        declinedByName: toPlayer.name
+      };
       return { success: true, accepted: false };
     }
 
@@ -766,16 +794,28 @@ export class MonopolyEngine {
     }
 
     const activePlayers = this.players.filter(p => !p.bankrupt);
-    if (activePlayers.length > 0) {
-      activePlayers.sort((a, b) => this.calculateNetWorth(b) - this.calculateNetWorth(a));
-      this.winner = activePlayers[0];
-    } else {
-      this.winner = hostPlayer;
+    const netWorths = activePlayers.map(p => ({
+      player: p,
+      netWorth: this.calculateNetWorth(p)
+    }));
+
+    netWorths.sort((a, b) => b.netWorth - a.netWorth);
+
+    // Check if there is an exact tie for 1st place or all players have equal wealth
+    const isTie = netWorths.length > 1 && netWorths[0].netWorth === netWorths[1].netWorth;
+
+    if (isTie) {
+      this.winner = null; // No winner
+      this.phase = "GAME_OVER";
+      this.addLog(`🛑 Game was ended early by the host (${hostPlayer.name}).`);
+      this.addLog(`🤝 Result: Game ended in a Draw / Cancelled (Equal net worth of M${netWorths[0].netWorth}). No winner declared.`);
+      return { success: true, isTie: true, winner: null };
     }
 
+    this.winner = netWorths.length > 0 ? netWorths[0].player : hostPlayer;
     this.phase = "GAME_OVER";
     this.addLog(`🛑 Game was ended early by the host (${hostPlayer.name}).`);
-    this.addLog(`🏆 Winner by Net Worth: ${this.winner.name} (M${this.calculateNetWorth(this.winner)})!`);
+    this.addLog(`🏆 Winner by Net Worth: ${this.winner.name} (M${netWorths[0].netWorth})!`);
     return { success: true, winner: this.winner };
   }
 

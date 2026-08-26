@@ -286,6 +286,15 @@ io.on("connection", (socket) => {
     if (callback) callback(res);
   });
 
+  // 20. Resolve Card Action
+  socket.on("resolve-card-action", ({ roomId, playerId }, callback) => {
+    const engine = roomManager.getRoom(roomId);
+    if (!engine) return;
+    const res = engine.resolveCardAction(playerId);
+    if (callback) callback(res);
+    roomManager.broadcastGameState(roomId);
+  });
+
   // 19. Send In-Game Chat
   socket.on("send-chat", ({ roomId, senderName, message }) => {
     const cleanRoom = (roomId || "").toUpperCase();
@@ -293,7 +302,7 @@ io.on("connection", (socket) => {
       id: Date.now() + Math.random().toString(36).substr(2, 4),
       sender: senderName,
       message,
-      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })
     });
   });
 

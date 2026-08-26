@@ -15,6 +15,7 @@ export default function Lobby({
 }) {
   const [name, setName] = useState(() => localStorage.getItem("vyapar_player_name") || "");
   const [selectedToken, setSelectedToken] = useState(() => localStorage.getItem("vyapar_player_token") || "hat");
+  const [startingCash, setStartingCash] = useState(1500);
   const [joinCode, setJoinCode] = useState("");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -71,7 +72,7 @@ export default function Lobby({
     setIsCreating(true);
     const tokenObj = PLAYER_TOKENS.find((t) => t.id === selectedToken) || PLAYER_TOKENS[0];
     onCreateRoom(finalName, selectedToken, tokenObj.color, {
-      startingCash: 1500,
+      startingCash: Number(startingCash),
       turnTimerSeconds: 60
     });
   };
@@ -276,6 +277,43 @@ export default function Lobby({
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        {/* Starting Cash Option */}
+        <div className="bg-white p-3.5 rounded-2xl border-2 border-black">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+              Starting Cash
+            </span>
+            <span className="text-xs font-black text-emerald-800 font-mono">
+              M{startingCash} per player
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              { label: "M1,000", value: 1000, desc: "Fast" },
+              { label: "M1,500", value: 1500, desc: "Classic" },
+              { label: "M2,000", value: 2000, desc: "Rich" },
+              { label: "M3,000", value: 3000, desc: "Tycoon" }
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setStartingCash(opt.value);
+                  sounds.playTokenStep();
+                }}
+                className={`py-1.5 px-2 rounded-xl border-2 font-black text-xs transition cursor-pointer flex flex-col items-center justify-center ${
+                  startingCash === opt.value
+                    ? "bg-[#CBE7D0] border-black ring-2 ring-black scale-105"
+                    : "bg-slate-50 border-slate-300 hover:border-black text-slate-700"
+                }`}
+              >
+                <span>{opt.label}</span>
+                <span className="text-[9px] font-normal text-slate-500">{opt.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
 

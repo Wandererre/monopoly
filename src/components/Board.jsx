@@ -254,7 +254,15 @@ export default function Board({
           return (
             <g key={tile.id} onClick={() => onTileClick(tile)} className="cursor-pointer">
               {/* Tile Background */}
-              <rect x={b.x} y={b.y} width={b.w} height={b.h} fill="#FAF8F5" stroke="#000" strokeWidth="1.5" />
+              <rect
+                x={b.x}
+                y={b.y}
+                width={b.w}
+                height={b.h}
+                fill={propState.mortgaged ? "#E2E8F0" : "#FAF8F5"}
+                stroke="#000"
+                strokeWidth="1.5"
+              />
 
               {/* Owner Strip Indicator */}
               {ownerPlayer && (
@@ -296,10 +304,18 @@ export default function Board({
                   {tile.type === "chance" && <text x={b.x + b.w / 2} y={b.y + 92} textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">?</text>}
                   {tile.type === "community_chest" && <text x={b.x + b.w / 2} y={b.y + 88} textAnchor="middle" fontSize="28">📦</text>}
 
+                  {/* Mortgaged Stamp */}
+                  {propState.mortgaged && (
+                    <g transform={`translate(${b.x + b.w / 2}, ${b.y + 85})`}>
+                      <rect x="-35" y="-11" width="70" height="22" rx="4" fill="#DC2626" stroke="#FFF" strokeWidth="1.5" />
+                      <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill="#FFF">MORTGAGED</text>
+                    </g>
+                  )}
+
                   {/* Price */}
                   {(tile.price || tile.amount) && (
-                    <text x={b.x + b.w / 2} y={b.y + 145} textAnchor="middle" fontSize="11" fontWeight="900" fill="#111">
-                      {tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
+                    <text x={b.x + b.w / 2} y={b.y + 145} textAnchor="middle" fontSize={propState.mortgaged ? "9" : "11"} fontWeight="900" fill={propState.mortgaged ? "#DC2626" : "#111"}>
+                      {propState.mortgaged ? `MORTGAGE M${tile.mortgage || tile.price / 2}` : tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
                     </text>
                   )}
                 </g>
@@ -333,9 +349,17 @@ export default function Board({
                     {tile.type === "utility" && <text x="0" y="8" textAnchor="middle" fontSize="28">💧</text>}
                     {tile.type === "chance" && <text x="0" y="12" textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">?</text>}
 
+                    {/* Mortgaged Stamp */}
+                    {propState.mortgaged && (
+                      <g transform="translate(0, 8)">
+                        <rect x="-35" y="-11" width="70" height="22" rx="4" fill="#DC2626" stroke="#FFF" strokeWidth="1.5" />
+                        <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill="#FFF">MORTGAGED</text>
+                      </g>
+                    )}
+
                     {(tile.price || tile.amount) && (
-                      <text x="0" y="65" textAnchor="middle" fontSize="11" fontWeight="900" fill="#111">
-                        {tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
+                      <text x="0" y="65" textAnchor="middle" fontSize={propState.mortgaged ? "9" : "11"} fontWeight="900" fill={propState.mortgaged ? "#DC2626" : "#111"}>
+                        {propState.mortgaged ? `MORTGAGE M${tile.mortgage || tile.price / 2}` : tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
                       </text>
                     )}
                   </g>
@@ -370,9 +394,17 @@ export default function Board({
                     {tile.type === "utility" && <text x="0" y="8" textAnchor="middle" fontSize="28">⚡</text>}
                     {tile.type === "community_chest" && <text x="0" y="8" textAnchor="middle" fontSize="28">📦</text>}
 
+                    {/* Mortgaged Stamp */}
+                    {propState.mortgaged && (
+                      <g transform="translate(0, 8)">
+                        <rect x="-35" y="-11" width="70" height="22" rx="4" fill="#DC2626" stroke="#FFF" strokeWidth="1.5" />
+                        <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill="#FFF">MORTGAGED</text>
+                      </g>
+                    )}
+
                     {tile.price && (
-                      <text x="0" y="65" textAnchor="middle" fontSize="11" fontWeight="900" fill="#111">
-                        M{tile.price}
+                      <text x="0" y="65" textAnchor="middle" fontSize={propState.mortgaged ? "9" : "11"} fontWeight="900" fill={propState.mortgaged ? "#DC2626" : "#111"}>
+                        {propState.mortgaged ? `MORTGAGE M${tile.mortgage || tile.price / 2}` : `M${tile.price}`}
                       </text>
                     )}
                   </g>
@@ -408,9 +440,17 @@ export default function Board({
                     {tile.type === "chance" && <text x="0" y="12" textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">?</text>}
                     {tile.type === "community_chest" && <text x="0" y="8" textAnchor="middle" fontSize="28">📦</text>}
 
+                    {/* Mortgaged Stamp */}
+                    {propState.mortgaged && (
+                      <g transform="translate(0, 8)">
+                        <rect x="-35" y="-11" width="70" height="22" rx="4" fill="#DC2626" stroke="#FFF" strokeWidth="1.5" />
+                        <text x="0" y="4" textAnchor="middle" fontSize="9" fontWeight="900" fill="#FFF">MORTGAGED</text>
+                      </g>
+                    )}
+
                     {(tile.price || tile.amount) && (
-                      <text x="0" y="65" textAnchor="middle" fontSize="11" fontWeight="900" fill="#111">
-                        {tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
+                      <text x="0" y="65" textAnchor="middle" fontSize={propState.mortgaged ? "9" : "11"} fontWeight="900" fill={propState.mortgaged ? "#DC2626" : "#111"}>
+                        {propState.mortgaged ? `MORTGAGE M${tile.mortgage || tile.price / 2}` : tile.price ? `M${tile.price}` : `PAY M${tile.amount}`}
                       </text>
                     )}
                   </g>

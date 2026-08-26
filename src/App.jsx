@@ -13,7 +13,7 @@ import CardPopup from "./components/CardPopup.jsx";
 import ChatDrawer from "./components/ChatDrawer.jsx";
 import ActivityDrawer from "./components/ActivityDrawer.jsx";
 import GameOverModal from "./components/GameOverModal.jsx";
-import { PLAYER_TOKENS } from "../server/data/boardData.js";
+import { PLAYER_TOKENS, BOARD_TILES } from "../server/data/boardData.js";
 import {
   Copy,
   Check,
@@ -31,7 +31,8 @@ import {
   WifiOff,
   RotateCw,
   AlertTriangle,
-  StopCircle
+  StopCircle,
+  Radio
 } from "lucide-react";
 
 export default function App() {
@@ -58,7 +59,6 @@ export default function App() {
   const [activityDrawerOpen, setActivityDrawerOpen] = useState(false);
   const [inspectedTile, setInspectedTile] = useState(null);
   const [tradeTarget, setTradeTarget] = useState(null);
-  const [pendingCardData, setPendingCardData] = useState(null);
   const [cardPopupData, setCardPopupData] = useState(null);
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
 
@@ -159,11 +159,6 @@ export default function App() {
       triggerTransactions(pendingTxRef.current);
       pendingTxRef.current = null;
     }
-
-    if (pendingCardData) {
-      setCardPopupData(pendingCardData);
-      setPendingCardData(null);
-    }
   };
 
   useEffect(() => {
@@ -191,7 +186,7 @@ export default function App() {
     function onGameState(state) {
       setGameState(state);
       if (state.pendingAction?.type === "CARD_DRAWN") {
-        setPendingCardData(state.pendingAction);
+        setCardPopupData(state.pendingAction);
       }
     }
 
@@ -341,7 +336,7 @@ export default function App() {
   };
 
   const handleHostEndGame = () => {
-    if (window.confirm("End the game now? The richest player by Net Worth will be crowned winner!")) {
+    if (window.confirm("End the game now? The richest player by Net Worth will be crowned winner (or a draw if equal).")) {
       socket.emit("host-end-game", { roomId, playerId }, (res) => {
         if (res && !res.success) alert(res.error);
       });
@@ -360,6 +355,47 @@ export default function App() {
   const isHost = gameState?.players?.find((p) => p.id === playerId)?.isHost;
   const myPlayer = gameState?.players?.find((p) => p.id === playerId);
   const isPendingBuy = gameState?.pendingAction?.type === "BUY_CHOICE";
+
+  // Dynamic Live Match Status Text
+  const getLiveStatusText = () => {
+    if (!gameState) return "";
+    const curr = gameState.players?.find((p) => p.id === gameState.currentPlayerId);
+    if (!curr) return "";
+
+    if (gameState.pendingTrade) {
+      if (gameState.pendingTrade.status === "DECLINED") {
+        return `❌ Trade offer declined by ${gameState.pendingTrade.declinedByName || "player"}`;
+      }
+      return `🤝 Trade offered: ${gameState.pendingTrade.fromPlayerName} ➔ ${gameState.pendingTrade.toPlayerName}`;
+    }
+
+    if (gameState.phase === "ROLL") {
+      return curr.id === playerId
+        ? "🎲 It's your turn! Roll the dice."
+        : `🎲 ${curr.name}'s turn • Rolling dice... (${gameState.turnTimeRemaining}s)`;
+    }
+
+    if (gameState.pendingAction?.type === "BUY_CHOICE") {
+      const t = BOARD_TILES[gameState.pendingAction.tileId];
+      return curr.id === playerId
+        ? `🏠 You landed on ${t?.name || "Property"}. Buy for M${t?.price} or Pass?`
+        : `🏠 ${curr.name} is deciding to Buy/Pass ${t?.name || "Property"}...`;
+    }
+
+    if (gameState.pendingAction?.type === "CARD_DRAWN") {
+      return `🃏 ${curr.name} drew a ${gameState.pendingAction.deckName || "Card"}!`;
+    }
+
+    if (curr.inJail) {
+      return `🔒 ${curr.name} is in Jail`;
+    }
+
+    if (gameState.logs && gameState.logs.length > 0) {
+      return gameState.logs[0].message;
+    }
+
+    return `Playing Turn: ${curr.name}`;
+  };
 
   if (!gameState || !gameState.gameStarted) {
     return (
@@ -559,29 +595,40 @@ export default function App() {
         />
       </main>
 
-      {/* Bottom Left Floating Buttons: Chat & Activity History */}
-      <div className="fixed bottom-4 left-4 z-40 flex items-center gap-2">
-        <button
-          onClick={() => {
-            setChatDrawerOpen(true);
-            setHasUnreadChat(false);
-          }}
-          className="relative px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
-        >
-          <MessageSquare className="w-4 h-4 text-blue-400" />
-          <span>Chat</span>
-          {hasUnreadChat && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-ping" />
-          )}
-        </button>
+      {/* Bottom Left Floating Bar: Live Match Status Ticker + Chat & Log Buttons */}
+      <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2 max-w-sm sm:max-w-md">
+        {/* Live Match Update Text Ticker */}
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-black/85 border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold text-slate-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <span className="flex h-2 w-2 relative shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span className="truncate">{getLiveStatusText()}</span>
+        </div>
 
-        <button
-          onClick={() => setActivityDrawerOpen(true)}
-          className="px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
-        >
-          <ScrollText className="w-4 h-4 text-amber-400" />
-          <span>Log</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setChatDrawerOpen(true);
+              setHasUnreadChat(false);
+            }}
+            className="relative px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+          >
+            <MessageSquare className="w-4 h-4 text-blue-400" />
+            <span>Chat</span>
+            {hasUnreadChat && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-ping" />
+            )}
+          </button>
+
+          <button
+            onClick={() => setActivityDrawerOpen(true)}
+            className="px-3.5 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+          >
+            <ScrollText className="w-4 h-4 text-amber-400" />
+            <span>Log</span>
+          </button>
+        </div>
       </div>
 
       {/* Bottom Right Floating Buttons: Deeds & Trade */}
@@ -675,7 +722,10 @@ export default function App() {
       {cardPopupData && (
         <CardPopup
           cardData={cardPopupData}
-          onClose={() => setCardPopupData(null)}
+          onClose={() => {
+            socket.emit("resolve-card-action", { roomId, playerId });
+            setCardPopupData(null);
+          }}
         />
       )}
 

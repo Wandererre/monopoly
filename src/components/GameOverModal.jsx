@@ -5,36 +5,36 @@ import { PLAYER_TOKENS } from "../../server/data/boardData.js";
 import { sounds } from "../utils/audio.js";
 
 export default function GameOverModal({ winner, players = [], onPlayAgain }) {
-  if (!winner) return null;
-
   useEffect(() => {
-    sounds.playFanfare();
-    // Fire confetti bursts
-    const duration = 3 * 1000;
-    const end = Date.now() + duration;
+    if (winner) {
+      sounds.playFanfare();
+      // Fire confetti bursts
+      const duration = 3 * 1000;
+      const end = Date.now() + duration;
 
-    const frame = () => {
-      confetti({
-        particleCount: 5,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 }
-      });
-      confetti({
-        particleCount: 5,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1 }
-      });
+      const frame = () => {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
 
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    };
-    frame();
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      };
+      frame();
+    }
   }, [winner]);
 
-  const tokenObj = PLAYER_TOKENS.find((t) => t.id === winner.token) || PLAYER_TOKENS[0];
+  const tokenObj = winner ? PLAYER_TOKENS.find((t) => t.id === winner.token) || PLAYER_TOKENS[0] : null;
 
   return (
     <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in zoom-in-95 duration-300">
@@ -44,26 +44,42 @@ export default function GameOverModal({ winner, players = [], onPlayAgain }) {
         </div>
 
         <h1 className="text-3xl font-black text-white tracking-tight">
-          Victory Champion!
+          {winner ? "Victory Champion!" : "Game Ended (Draw)"}
         </h1>
         <p className="text-sm text-slate-400 mt-1">
-          Indian Monopoly Tycoon of Bharat
+          {winner
+            ? "Indian Monopoly Tycoon of Bharat"
+            : "The game was concluded early with equal net worth. No single winner."}
         </p>
 
-        <div className="my-6 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner mb-2 border border-white/10"
-            style={{ backgroundColor: `${winner.color}30` }}
-          >
-            {tokenObj.emoji}
+        {winner && tokenObj ? (
+          <div className="my-6 p-5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col items-center">
+            <div
+              className="w-16 h-16 rounded-2xl flex items-center justify-center text-4xl shadow-inner mb-2 border border-white/10"
+              style={{ backgroundColor: `${winner.color}30` }}
+            >
+              {tokenObj.emoji}
+            </div>
+            <div className="text-xl font-black text-white flex items-center gap-1.5">
+              <Crown className="w-5 h-5 text-amber-400" /> {winner.name}
+            </div>
+            <div className="text-xs text-slate-400 mt-1">
+              Total Final Net Worth: <span className="font-extrabold text-emerald-400">M{(winner.netWorth || winner.money).toLocaleString("en-IN")}</span>
+            </div>
           </div>
-          <div className="text-xl font-black text-white flex items-center gap-1.5">
-            <Crown className="w-5 h-5 text-amber-400" /> {winner.name}
+        ) : (
+          <div className="my-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-left">
+            <div className="text-xs font-black uppercase text-slate-400 tracking-wider mb-2 text-center">
+              Final Player Wealth Standings
+            </div>
+            {players.map((p) => (
+              <div key={p.id} className="flex items-center justify-between text-xs py-1 border-b border-slate-800 last:border-0">
+                <span className="font-bold text-white">{p.name}</span>
+                <span className="font-mono font-black text-emerald-400">M{p.netWorth || p.money}</span>
+              </div>
+            ))}
           </div>
-          <div className="text-xs text-slate-400 mt-1">
-            Total Final Net Worth: <span className="font-extrabold text-emerald-400">₹{(winner.netWorth || winner.money).toLocaleString("en-IN")}</span>
-          </div>
-        </div>
+        )}
 
         <button
           onClick={onPlayAgain}
