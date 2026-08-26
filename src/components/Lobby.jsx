@@ -63,8 +63,8 @@ export default function Lobby({
   };
 
   const handleCreate = (e) => {
-    if (e) e.preventDefault();
-    sounds.playCardDraw();
+    if (e && e.preventDefault) e.preventDefault();
+    try { sounds.playCardDraw(); } catch (err) {}
 
     let finalName = name.trim();
     if (!finalName) {
@@ -72,34 +72,22 @@ export default function Lobby({
       setName(finalName);
     }
 
-    if (!socket.connected) {
-      socket.connect();
-    }
-
-    setIsCreating(true);
     const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
     onCreateRoom(finalName, randToken.id, randToken.color, {
-      startingCash: Number(startingCash),
+      startingCash: Number(startingCash) || 1500,
       turnTimerSeconds: 15
     });
-
-    // Auto-reset creating flag after 2s so button is never locked
-    setTimeout(() => setIsCreating(false), 2000);
   };
 
   const handleJoin = (targetCode) => {
     const codeToJoin = (targetCode || joinCode).trim().toUpperCase();
     if (!codeToJoin) return;
 
-    sounds.playCardDraw();
+    try { sounds.playCardDraw(); } catch (err) {}
     let finalName = name.trim();
     if (!finalName) {
       finalName = `Player_${Math.floor(100 + Math.random() * 900)}`;
       setName(finalName);
-    }
-
-    if (!socket.connected) {
-      socket.connect();
     }
 
     const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
@@ -109,14 +97,14 @@ export default function Lobby({
   const handleCopyLink = () => {
     const url = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
     navigator.clipboard.writeText(url);
-    sounds.playCardDraw();
+    try { sounds.playCardDraw(); } catch (err) {}
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(roomId);
-    sounds.playCardDraw();
+    try { sounds.playCardDraw(); } catch (err) {}
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2500);
   };

@@ -128,6 +128,28 @@ class SoundFX {
     }
   }
 
+  playCardDraw() {
+    if (this.muted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(900, this.ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.10, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.15);
+    } catch (e) {}
+  }
+
+  playCard() { this.playCardDraw(); }
+
   // Unified single transaction sound for all money gains, payments, property purchases, and taxes
   playCashGain() { this.playCashRegister(); }
   playCashPaid() { this.playCashRegister(); }
