@@ -479,6 +479,20 @@ export default function App() {
     return `${curr.name}'s turn`;
   };
 
+  const isMoreThanFourPlayers = (gameState?.players?.length || 0) > 4;
+
+  const canProposeTrade =
+    ((isMyTurn && gameState?.phase !== "ROLL" && !isPendingBuy) || (myPlayer && myPlayer.money < 0)) &&
+    (gameState?.players?.filter((p) => p.id !== playerId && !p.bankrupt).length || 0) > 0;
+
+  const getTradeDisabledReason = () => {
+    if (myPlayer && myPlayer.money < 0) return "";
+    if (!isMyTurn) return "You can only propose trades during your turn";
+    if (gameState?.phase === "ROLL") return "You must roll the dice first";
+    if (isPendingBuy) return "You must decide to Buy or Pass the property first";
+    return "";
+  };
+
   if (!gameState || !gameState.gameStarted) {
     return (
       <Lobby
@@ -495,14 +509,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#1F2421] text-slate-100 flex flex-col justify-between select-none relative overflow-hidden">
-      {/* Top Seamless Bar */}
-      <header className="px-4 pt-3 pb-8 z-30 flex items-center justify-between gap-4 overflow-visible">
+      {/* Top Seamless Bar - Pinned Left/Right Controls with Responsive Center Player Chips */}
+      <header className="px-3 pt-2 pb-6 z-30 flex items-center justify-between gap-2 overflow-x-hidden w-full max-w-7xl mx-auto">
         {/* Left: Monopoly Logo & Cards Button */}
-        <div className="flex items-center gap-2">
-          <div className="bg-[#ED1B24] text-white font-black px-3 py-1 rounded-sm border-2 border-black text-sm font-['Cinzel'] tracking-wider shadow-md">
+        <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
+          <div className="bg-[#ED1B24] text-white font-black px-2.5 py-1 rounded-sm border-2 border-black text-xs sm:text-sm font-['Cinzel'] tracking-wider shadow-md">
             MONOPOLY
           </div>
-          <span className="text-[11px] uppercase font-black tracking-widest text-slate-300 hidden md:inline">
+          <span className="text-[10px] uppercase font-black tracking-widest text-slate-300 hidden lg:inline">
             INDIA
           </span>
           <button
@@ -510,16 +524,16 @@ export default function App() {
               sounds.playCardDraw();
               setCardsModalOpen("chance");
             }}
-            className="px-2.5 py-1 rounded-xl bg-black/40 hover:bg-black/70 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow cursor-pointer ml-1"
+            className="px-2 py-1 rounded-xl bg-black/40 hover:bg-black/70 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer"
             title="Browse all Chance and Community Chest cards"
           >
             <span>🃏</span>
-            <span className="hidden sm:inline">Cards</span>
+            <span className="hidden md:inline">Cards</span>
           </button>
         </div>
 
-        {/* Center: Wider Player Chips with Glowing Speaking Rings & Stacked Floating Delta Badges */}
-        <div className="flex items-center gap-4 py-1 px-2 overflow-visible">
+        {/* Center: Responsive Player Chips (Scrolls smoothly if >4 players, never pushes controls off-screen) */}
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-2 px-1 overflow-x-auto no-scrollbar py-1">
           {gameState.players?.map((p) => {
             const isTurn = p.id === gameState.currentPlayerId;
             const isYou = p.id === playerId;
@@ -530,11 +544,15 @@ export default function App() {
             const isMuted = vState?.isMuted;
 
             return (
-              <div key={p.id} className="relative flex flex-col items-center overflow-visible">
+              <div key={p.id} className="relative flex flex-col items-center shrink-0">
                 <button
                   onClick={() => setDeedsModalOpen(true)}
                   title={`Click to view ${p.name}'s deeds`}
-                  className={`relative flex items-center gap-3 px-4 py-2 rounded-2xl border-2 transition-all duration-200 whitespace-nowrap shadow-xl cursor-pointer ${
+                  className={`relative flex items-center rounded-2xl border-2 transition-all duration-200 whitespace-nowrap shadow-md cursor-pointer ${
+                    isMoreThanFourPlayers
+                      ? "px-2.5 py-1 text-xs gap-1.5"
+                      : "px-3.5 py-1.5 text-xs sm:text-sm gap-2"
+                  } ${
                     p.bankrupt
                       ? "bg-slate-900 border-slate-800 opacity-40"
                       : isSpeaking
@@ -546,24 +564,28 @@ export default function App() {
                       : "bg-white text-slate-900 border-black font-bold"
                   }`}
                 >
-                  <span className="text-xl">{tok.emoji}</span>
-                  <div className="flex items-center gap-1.5 max-w-[130px]">
-                    <span className="text-sm font-black truncate">{p.name}</span>
+                  <span className={isMoreThanFourPlayers ? "text-base" : "text-lg"}>{tok.emoji}</span>
+                  <div className="flex items-center gap-1">
+                    <span className={`font-black truncate ${isMoreThanFourPlayers ? "max-w-[55px] sm:max-w-[80px]" : "max-w-[75px] sm:max-w-[110px]"}`}>
+                      {p.name}
+                    </span>
                     {isSpeaking && (
                       <span className="flex h-2 w-2 relative">
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-600 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
                       </span>
                     )}
-                    {isMuted && <MicOff className="w-3.5 h-3.5 text-red-600 shrink-0" />}
+                    {isMuted && <MicOff className="w-3 h-3 text-red-600 shrink-0" />}
                   </div>
 
-                  <span className={`text-sm font-mono font-black px-2 py-0.5 rounded-lg ${p.money < 0 ? "bg-red-600 text-white animate-pulse" : "text-emerald-900 bg-black/10"}`}>
+                  <span className={`font-mono font-black px-1.5 py-0.5 rounded-md ${
+                    isMoreThanFourPlayers ? "text-[11px]" : "text-xs"
+                  } ${p.money < 0 ? "bg-red-600 text-white animate-pulse" : "text-emerald-900 bg-black/10"}`}>
                     M{p.money}
                   </span>
 
-                  {p.inJail && <ShieldAlert className="w-4 h-4 text-red-600 ml-0.5" />}
-                  {p.money < 0 && <AlertTriangle className="w-4 h-4 text-red-600 animate-bounce" />}
+                  {p.inJail && <ShieldAlert className="w-3.5 h-3.5 text-red-600 ml-0.5" />}
+                  {p.money < 0 && <AlertTriangle className="w-3.5 h-3.5 text-red-600 animate-bounce" />}
                 </button>
 
                 {/* Multiple Floating Transaction Deltas */}
@@ -572,7 +594,7 @@ export default function App() {
                     {pTxList.map((tx) => (
                       <div
                         key={tx.id}
-                        className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono shadow-2xl border-2 whitespace-nowrap ${
+                        className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black font-mono shadow-2xl border-2 whitespace-nowrap ${
                           tx.delta > 0
                             ? "bg-emerald-600 text-white border-white animate-float-up-fade shadow-emerald-600/60"
                             : "bg-red-600 text-white border-white animate-float-down-fade shadow-red-600/60"
@@ -589,12 +611,12 @@ export default function App() {
         </div>
 
         {/* Right Controls: Voice Chat (Mic + Deafen), SFX, Host End Game, Invite */}
-        <div className="flex items-center gap-2">
+        <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
           {/* 1. Voice Chat Mic Button */}
           <button
             onClick={handleToggleMic}
             title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
-            className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
               isMicMuted
                 ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
                 : "bg-emerald-600/20 border-emerald-500 text-emerald-400 hover:bg-emerald-600/30 shadow-emerald-500/20 shadow"
@@ -607,7 +629,7 @@ export default function App() {
           <button
             onClick={handleToggleDeafen}
             title={isDeafened ? "Undeafen Audio" : "Deafen Voice Chat"}
-            className={`p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
+            className={`p-1.5 sm:p-2 rounded-xl border transition flex items-center justify-center cursor-pointer ${
               isDeafened
                 ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
                 : "bg-black/40 hover:bg-black/60 text-slate-200 border-slate-700"
@@ -620,7 +642,7 @@ export default function App() {
           <button
             onClick={handleToggleSoundFX}
             title={isSoundMuted ? "Unmute Game SFX" : "Mute Game SFX"}
-            className="p-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 border border-slate-700 transition cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-black/40 hover:bg-black/60 text-slate-200 border border-slate-700 transition cursor-pointer"
           >
             {isSoundMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-slate-300" />}
           </button>
@@ -629,7 +651,7 @@ export default function App() {
           {isHost && gameState.gameStarted && gameState.phase !== "GAME_OVER" && (
             <button
               onClick={handleHostEndGame}
-              className="px-3 py-1.5 rounded-xl bg-red-950/90 hover:bg-red-800 text-red-200 hover:text-white font-bold text-xs border border-red-600 transition flex items-center gap-1 shadow cursor-pointer"
+              className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-red-950/90 hover:bg-red-800 text-red-200 hover:text-white font-bold text-xs border border-red-600 transition flex items-center gap-1 shadow cursor-pointer"
               title="Host Only: End Game & Crown Winner by Net Worth"
             >
               <StopCircle className="w-3.5 h-3.5 text-red-400" />
@@ -640,7 +662,7 @@ export default function App() {
           {/* 5. Invite Share Link */}
           <button
             onClick={handleCopyLink}
-            className="px-3 py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">{copiedLink ? "Copied!" : "Invite"}</span>
@@ -648,7 +670,7 @@ export default function App() {
 
           {/* Connection Status Indicator */}
           <div
-            className={`p-2 rounded-xl border flex items-center justify-center ${
+            className={`p-1.5 sm:p-2 rounded-xl border flex items-center justify-center ${
               connected ? "bg-emerald-500/20 border-emerald-500 text-emerald-400" : "bg-red-500/20 border-red-500 text-red-400 animate-pulse"
             }`}
             title={connected ? "Connected" : "Disconnected"}
@@ -769,18 +791,20 @@ export default function App() {
 
         <button
           onClick={() => {
-            if (isPendingBuy) {
-              alert("You must decide to Buy or Pass the property first!");
+            const reason = getTradeDisabledReason();
+            if (reason) {
+              alert(reason);
               return;
             }
-            setTradeTarget(gameState.players.find((p) => p.id !== playerId && !p.bankrupt));
+            const target = gameState.players.find((p) => p.id !== playerId && !p.bankrupt);
+            if (target) setTradeTarget(target);
           }}
-          disabled={isPendingBuy}
-          title={isPendingBuy ? "Decide Buy/Pass on current property first" : "Propose Trade"}
+          disabled={!canProposeTrade}
+          title={getTradeDisabledReason() || "Propose Trade"}
           className={`px-4 py-2 rounded-2xl font-black text-xs border-2 transition flex items-center gap-1.5 shadow-xl ${
-            isPendingBuy
-              ? "bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-60"
-              : "bg-blue-600 hover:bg-blue-700 text-white border-black cursor-pointer"
+            !canProposeTrade
+              ? "bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed opacity-50"
+              : "bg-blue-600 hover:bg-blue-700 text-white border-black cursor-pointer shadow-blue-600/30"
           }`}
         >
           <ArrowRightLeft className="w-4 h-4" />

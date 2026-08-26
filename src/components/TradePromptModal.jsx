@@ -8,7 +8,7 @@ export default function TradePromptModal({
   playerId,
   onRespondTrade
 }) {
-  if (!pendingTrade || pendingTrade.toPlayerId !== playerId) return null;
+  if (!pendingTrade || pendingTrade.toPlayerId !== playerId || pendingTrade.status === "DECLINED") return null;
 
   const {
     fromPlayerName,

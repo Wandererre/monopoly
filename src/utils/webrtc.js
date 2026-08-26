@@ -1,15 +1,22 @@
-// WebRTC Multi-Peer Voice Chat Manager for Indian Monopoly
+// Production-Grade WebRTC Multi-Peer Voice Chat Engine with Global STUN/TURN Relays and ICE Buffering
 
 const ICE_SERVERS = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
-    { urls: "stun:stun3.l.google.com:19302" },
-    { urls: "stun:stun4.l.google.com:19302" },
-    { urls: "stun:openrelay.metered.ca:80" },
-    { urls: "stun:stun.relay.metered.ca:80" }
-  ]
+    { urls: "stun:stun.cloudflare.com:3478" },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelay",
+      credential: "openrelay"
+    }
+  ],
+  iceCandidatePoolSize: 10
 };
 
 class VoiceChatManager {
@@ -22,7 +29,7 @@ class VoiceChatManager {
     this.audioContext = null;
     this.playbackAudioCtx = null;
     this.analyser = null;
-    this.peers = new Map(); // socketId -> { connection, playerId, audioEl, gainNode }
+    this.peers = new Map(); // socketId -> { connection, playerId, audioEl, gainNode, pendingCandidates }
     this.voiceStates = new Map(); // playerId -> { isMuted, isDeafened, isSpeaking }
     
     this.isMuted = false;
@@ -35,7 +42,7 @@ class VoiceChatManager {
     this.speakingSilenceTimeout = null;
     this.analyserInterval = null;
 
-    // Universal audio unlock listener
+    // Universal audio gesture unlock listener for iOS/Android/Chrome/Safari autoplay restrictions
     if (typeof window !== "undefined") {
       const unlockAudio = () => {
         if (this.audioContext && this.audioContext.state === "suspended") {
@@ -52,6 +59,7 @@ class VoiceChatManager {
       };
       window.addEventListener("click", unlockAudio, { passive: true });
       window.addEventListener("touchstart", unlockAudio, { passive: true });
+      window.addEventListener("pointerdown", unlockAudio, { passive: true });
       window.addEventListener("keydown", unlockAudio, { passive: true });
     }
   }
@@ -179,8 +187,22 @@ class VoiceChatManager {
     this.socket.on("voice-offer", async ({ callerSocketId, callerPlayerId, offer }) => {
       await this.streamPromise;
       const pc = this.createPeerConnection(callerSocketId, callerPlayerId);
+      const peer = this.peers.get(callerSocketId);
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+        // Drain queued ICE candidates received before remote description was ready
+        if (peer && peer.pendingCandidates.length > 0) {
+          for (const cand of peer.pendingCandidates) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (ce) {
+              console.warn("Error adding queued candidate", ce);
+            }
+          }
+          peer.pendingCandidates = [];
+        }
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
@@ -201,6 +223,18 @@ class VoiceChatManager {
         try {
           if (peer.connection.signalingState !== "closed" && peer.connection.signalingState === "have-local-offer") {
             await peer.connection.setRemoteDescription(new RTCSessionDescription(answer));
+
+            // Drain queued ICE candidates
+            if (peer.pendingCandidates.length > 0) {
+              for (const cand of peer.pendingCandidates) {
+                try {
+                  await peer.connection.addIceCandidate(new RTCIceCandidate(cand));
+                } catch (ce) {
+                  console.warn("Error adding queued candidate", ce);
+                }
+              }
+              peer.pendingCandidates = [];
+            }
           }
         } catch (err) {
           console.error("Error setting remote description from answer:", err);
@@ -210,12 +244,18 @@ class VoiceChatManager {
 
     // Received ICE candidate
     this.socket.on("voice-ice-candidate", async ({ fromSocketId, candidate }) => {
+      if (!candidate) return;
       const peer = this.peers.get(fromSocketId);
-      if (peer && peer.connection && candidate) {
-        try {
-          await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.error("Error adding ICE candidate:", err);
+      if (peer && peer.connection) {
+        if (peer.connection.remoteDescription && peer.connection.remoteDescription.type) {
+          try {
+            await peer.connection.addIceCandidate(new RTCIceCandidate(candidate));
+          } catch (err) {
+            console.error("Error adding ICE candidate:", err);
+          }
+        } else {
+          // Buffer candidate until remote description is set
+          peer.pendingCandidates.push(candidate);
         }
       }
     });
@@ -247,26 +287,40 @@ class VoiceChatManager {
     const pc = new RTCPeerConnection(ICE_SERVERS);
 
     // Create HTMLAudioElement for peer
-    const audioEl = document.createElement("audio");
-    audioEl.autoplay = true;
-    audioEl.playsInline = true;
-    audioEl.muted = this.isDeafened;
-    audioEl.setAttribute("data-peer-socket", targetSocketId);
-    document.body.appendChild(audioEl);
+    let audioEl = document.getElementById(`webrtc-peer-audio-${targetSocketId}`);
+    if (!audioEl) {
+      audioEl = document.createElement("audio");
+      audioEl.id = `webrtc-peer-audio-${targetSocketId}`;
+      audioEl.autoplay = true;
+      audioEl.playsInline = true;
+      audioEl.volume = 1.0;
+      audioEl.muted = this.isDeafened;
+      document.body.appendChild(audioEl);
+    }
 
     const peerObj = {
       connection: pc,
       playerId: targetPlayerId,
       audioEl,
-      gainNode: null
+      gainNode: null,
+      pendingCandidates: []
     };
 
     this.peers.set(targetSocketId, peerObj);
 
+    // Explicitly add bidirectional audio transceiver
+    try {
+      pc.addTransceiver("audio", { direction: "sendrecv" });
+    } catch (e) {
+      console.log("Transceiver fallback", e);
+    }
+
     // Attach local audio tracks
     if (this.localStream) {
       this.localStream.getAudioTracks().forEach((track) => {
-        pc.addTrack(track, this.localStream);
+        try {
+          pc.addTrack(track, this.localStream);
+        } catch (e) {}
       });
     }
 
@@ -312,6 +366,14 @@ class VoiceChatManager {
           targetSocketId,
           candidate: event.candidate
         });
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === "failed") {
+        try {
+          pc.restartIce();
+        } catch (e) {}
       }
     };
 

@@ -587,6 +587,24 @@ export class MonopolyEngine {
       return { success: false, error: "Invalid trade participants." };
     }
 
+    const curr = this.getCurrentPlayer();
+    const isInDebt = fromPlayer.money < 0;
+
+    // Rule: Must be your turn unless resolving emergency debt
+    if (!isInDebt && (!curr || curr.id !== fromPlayerId)) {
+      return { success: false, error: "You can only propose trades during your turn." };
+    }
+
+    // Rule: Must roll dice first
+    if (!isInDebt && this.phase === "ROLL") {
+      return { success: false, error: "You must roll the dice before trading." };
+    }
+
+    // Rule: Must decide to Buy or Pass unowned land first
+    if (!isInDebt && this.pendingAction && this.pendingAction.type === "BUY_CHOICE") {
+      return { success: false, error: "You must choose to Buy or Pass the property first." };
+    }
+
     const { offerCash = 0, offerProperties = [], requestCash = 0, requestProperties = [] } = tradeData;
 
     if (fromPlayer.money < offerCash) return { success: false, error: "Insufficient cash for offer." };
@@ -607,7 +625,8 @@ export class MonopolyEngine {
       offerCash,
       offerProperties,
       requestCash,
-      requestProperties
+      requestProperties,
+      status: "PENDING"
     };
 
     this.addLog(`${fromPlayer.name} offered a trade deal to ${toPlayer.name}.`, "trade");
@@ -625,11 +644,7 @@ export class MonopolyEngine {
 
     if (!accept) {
       this.addLog(`❌ ${toPlayer.name} declined the trade offer from ${fromPlayer.name}.`, "trade");
-      this.pendingTrade = {
-        ...trade,
-        status: "DECLINED",
-        declinedByName: toPlayer.name
-      };
+      this.pendingTrade = null; // Clean up immediately so modal disappears instantly
       return { success: true, accepted: false };
     }
 
