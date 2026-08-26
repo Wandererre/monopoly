@@ -46,9 +46,8 @@ export default function Board({
           steps.push(cur);
         }
 
-        // For large teleport jumps (>6 steps, e.g. Go to Jail, Card Advance to Go):
-        // Float directly to destination instead of slow step-by-step
-        if (steps.length > 6) {
+        // Only float for explicit teleports (>12 steps, e.g. 30 -> 10 Go to Jail)
+        if (steps.length > 12 || (currentDisplayed === 30 && targetPos === 10)) {
           sounds.playJail();
           setDisplayedPositions((prev) => ({ ...prev, [p.id]: targetPos }));
           setTimeout(() => {
@@ -76,7 +75,7 @@ export default function Board({
               onMovementComplete();
             }
           }
-        }, 220);
+        }, 190);
       }
     });
   }, [players]);

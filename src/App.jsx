@@ -110,52 +110,58 @@ export default function App() {
 
   // Synchronized Multi-Transaction & Audio Handling
   useEffect(() => {
-    if (gameState?.players) {
-      const myPlayerObj = gameState.players.find((p) => p.id === playerId);
-      const myPrevMoney = prevMoneyRef.current[playerId];
-      const myDelta = myPlayerObj && myPrevMoney !== undefined ? myPlayerObj.money - myPrevMoney : 0;
+    if (!gameState || !gameState.gameStarted || !gameState.players) {
+      if (gameState?.players) {
+        gameState.players.forEach((p) => {
+          prevMoneyRef.current[p.id] = p.money;
+          prevPositionsRef.current[p.id] = p.position;
+        });
+      }
+      return;
+    }
 
-      let someoneElseGained = false;
-      const deltas = {};
+    const myPlayerObj = gameState.players.find((p) => p.id === playerId);
+    const myPrevMoney = prevMoneyRef.current[playerId];
+    const myDelta = myPlayerObj && myPrevMoney !== undefined ? myPlayerObj.money - myPrevMoney : 0;
 
-      let hasMoneyChange = false;
-      let hasPositionChange = false;
+    const deltas = {};
+    let hasMoneyChange = false;
+    let hasPositionChange = false;
 
-      gameState.players.forEach((p) => {
-        const prevM = prevMoneyRef.current[p.id];
-        const prevPos = prevPositionsRef.current[p.id];
+    gameState.players.forEach((p) => {
+      const prevM = prevMoneyRef.current[p.id];
+      const prevPos = prevPositionsRef.current[p.id];
 
-        if (prevM !== undefined && prevM !== p.money) {
-          hasMoneyChange = true;
-          const d = p.money - prevM;
-          deltas[p.id] = d;
-          if (p.id !== playerId && d > 0) {
-            someoneElseGained = true;
-          }
-        }
+      if (prevM !== undefined && prevM !== p.money) {
+        hasMoneyChange = true;
+        deltas[p.id] = p.money - prevM;
+      }
 
-        if (prevPos !== undefined && prevPos !== p.position) {
-          hasPositionChange = true;
-        }
+      if (prevPos !== undefined && prevPos !== p.position) {
+        hasPositionChange = true;
+      }
 
-        prevMoneyRef.current[p.id] = p.money;
-        prevPositionsRef.current[p.id] = p.position;
-      });
+      prevMoneyRef.current[p.id] = p.money;
+      prevPositionsRef.current[p.id] = p.position;
+    });
 
-      if (hasMoneyChange) {
-        const txPayload = { deltas, myDelta, someoneElseGained };
-        if (hasPositionChange) {
-          pendingTxRef.current = txPayload;
-        } else {
-          triggerTransactions(txPayload);
-        }
+    if (hasMoneyChange && Object.keys(deltas).length > 0) {
+      const txPayload = { deltas, myDelta };
+      if (hasPositionChange) {
+        pendingTxRef.current = txPayload;
+      } else {
+        triggerTransactions(txPayload);
       }
     }
-  }, [gameState?.players, playerId]);
+  }, [gameState?.players, gameState?.gameStarted, playerId]);
 
-  const triggerTransactions = ({ deltas, myDelta, someoneElseGained }) => {
-    Object.keys(deltas).forEach((pid) => {
+  const triggerTransactions = ({ deltas }) => {
+    const deltaKeys = Object.keys(deltas);
+    if (deltaKeys.length === 0) return;
+
+    deltaKeys.forEach((pid) => {
       const delta = deltas[pid];
+      if (delta === 0) return;
       const txItem = { id: Date.now() + Math.random(), delta };
 
       // Append to list of active transactions for this player
@@ -173,13 +179,8 @@ export default function App() {
       }, 2800);
     });
 
-    if (myDelta < 0) {
-      sounds.playMoneyGone();
-    } else if (myDelta > 0) {
-      sounds.playCashRegister();
-    } else if (someoneElseGained) {
-      sounds.playCashRegister();
-    }
+    // Play 1 single crisp Ka-Ching sound exclusively when money is transacted
+    sounds.playCashRegister();
   };
 
   const pendingCardRef = useRef(null);
