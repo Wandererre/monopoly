@@ -6,9 +6,11 @@ export const SOUNDBOARD_CLIPS = [
   { id: "flashman", name: "flashman", file: "/soundboard/flashman.mpeg" },
   { id: "gangam-style", name: "gangam style", file: "/soundboard/gangam style.mpeg" },
   { id: "in-nomine-patris", name: "in nomine patris", file: "/soundboard/in nomine patris.aac" },
+  { id: "money-money-money", name: "money money money", file: "/soundboard/money money money.mp3" },
   { id: "romance", name: "romance", file: "/soundboard/romance.mpeg" },
   { id: "sad-1", name: "sad 1", file: "/soundboard/sad 1.mpeg" },
   { id: "star-man", name: "star man", file: "/soundboard/star man.mpeg" },
   { id: "sus", name: "sus", file: "/soundboard/sus.mpeg" },
+  { id: "threaten", name: "threaten", file: "/soundboard/threaten.mp3" },
   { id: "wait-wait-wait", name: "wait wait wait", file: "/soundboard/wait wait wait.mpeg" }
 ];
