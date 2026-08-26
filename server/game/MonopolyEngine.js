@@ -376,7 +376,7 @@ export class MonopolyEngine {
   }
 
   executeCardAction(player, card, deckName) {
-    this.addLog(`${player.name} drew ${deckName}: "${card.title}"`, "card", { card });
+    this.addLog(`${player.name} landed on ${deckName}.`, "card");
     
     const isMovement = ["advance_tile", "go_to_jail", "move_relative"].includes(card.action);
 
@@ -434,12 +434,14 @@ export class MonopolyEngine {
       return { success: true };
     }
 
-    const { card, playerId: targetPid, needsResolution } = this.pendingAction;
+    const { card, deckName, playerId: targetPid, needsResolution } = this.pendingAction;
     const player = this.players.find(p => p.id === targetPid);
     if (!player) {
       this.pendingAction = null;
       return { success: true };
     }
+
+    this.addLog(`${player.name} revealed ${deckName}: "${card.title}"`, "card", { card });
 
     if (needsResolution) {
       if (card.action === "advance_tile" && card.targetTile !== undefined) {

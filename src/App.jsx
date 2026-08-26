@@ -174,10 +174,17 @@ export default function App() {
     }
   };
 
+  const pendingCardRef = useRef(null);
+
   const handleMovementComplete = () => {
     if (pendingTxRef.current) {
       triggerTransactions(pendingTxRef.current);
       pendingTxRef.current = null;
+    }
+
+    if (pendingCardRef.current) {
+      setCardPopupData(pendingCardRef.current);
+      pendingCardRef.current = null;
     }
   };
 
@@ -206,7 +213,7 @@ export default function App() {
     function onGameState(state) {
       setGameState(state);
       if (state.pendingAction?.type === "CARD_DRAWN") {
-        setCardPopupData(state.pendingAction);
+        pendingCardRef.current = state.pendingAction;
       }
     }
 
@@ -775,6 +782,7 @@ export default function App() {
           onMortgage={handleMortgage}
           onSellHouse={handleSellHouse}
           onDeclareBankruptcy={handleDeclareBankruptcy}
+          onProposeTrade={(target) => setTradeTarget(target)}
         />
       )}
 

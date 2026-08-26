@@ -1,6 +1,6 @@
 import React from "react";
 import { BOARD_TILES, COLOR_GROUPS } from "../../server/data/boardData.js";
-import { AlertTriangle, Building2, Skull, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { AlertTriangle, Building2, Skull, ArrowUpCircle, ArrowDownCircle, ArrowRightLeft } from "lucide-react";
 import { sounds } from "../utils/audio.js";
 
 export default function DebtResolutionModal({
@@ -8,10 +8,12 @@ export default function DebtResolutionModal({
   playerId,
   onMortgage,
   onSellHouse,
-  onDeclareBankruptcy
+  onDeclareBankruptcy,
+  onProposeTrade
 }) {
   const { properties = {}, players = [] } = gameState || {};
   const myPlayer = players.find((p) => p.id === playerId);
+  const otherPlayers = players.filter((p) => p.id !== playerId && !p.bankrupt);
 
   if (!myPlayer || myPlayer.money >= 0 || myPlayer.bankrupt) return null;
 
@@ -41,7 +43,7 @@ export default function DebtResolutionModal({
             <AlertTriangle className="w-6 h-6 animate-bounce" />
             <div>
               <h2 className="text-xl font-black tracking-tight">YOU ARE IN DEBT!</h2>
-              <p className="text-xs text-red-100">Raise cash by mortgaging properties or selling buildings</p>
+              <p className="text-xs text-red-100">Raise cash by trading, mortgaging properties, or selling buildings</p>
             </div>
           </div>
           <div className="px-3 py-1 bg-black text-white font-mono font-black text-sm rounded-lg">
@@ -52,8 +54,36 @@ export default function DebtResolutionModal({
         {/* Action Body */}
         <div className="p-4 overflow-y-auto flex-1 space-y-4 bg-slate-50">
           <p className="text-xs text-slate-700 font-semibold leading-relaxed">
-            You cannot end your turn or roll while in debt. Raise enough cash to bring your balance back to M0 or declare bankruptcy.
+            You cannot end your turn or roll while in debt. Raise enough cash to bring your balance back to M0 by trading properties with other players, mortgaging, or selling houses.
           </p>
+
+          {/* Trade with Players Section */}
+          {otherPlayers.length > 0 && myOwnedTileIds.length > 0 && (
+            <div className="p-3 bg-blue-50 border-2 border-blue-300 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase text-blue-900 flex items-center gap-1.5">
+                  <ArrowRightLeft className="w-4 h-4 text-blue-600" /> Propose Trade / Sell Properties for Cash
+                </h4>
+              </div>
+              <p className="text-[11px] text-blue-800 font-medium">
+                Sell your deeds or trade with fellow players to raise emergency funds:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {otherPlayers.map((other) => (
+                  <button
+                    key={other.id}
+                    onClick={() => {
+                      sounds.playCardDraw();
+                      if (onProposeTrade) onProposeTrade(other);
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl border border-black shadow flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Trade with {other.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Sell Houses Section */}
           {housesToSell.length > 0 && (
@@ -121,12 +151,12 @@ export default function DebtResolutionModal({
 
           {housesToSell.length === 0 && canMortgage.length === 0 && (
             <div className="p-4 bg-red-100 border-2 border-red-400 rounded-xl text-center text-xs text-red-800 font-bold">
-              You have no further properties to mortgage or buildings to sell. You must declare bankruptcy.
+              You have no further properties to mortgage or buildings to sell. You must trade or declare bankruptcy.
             </div>
           )}
         </div>
 
-        {/* Bankruptcy Declaration Button */}
+        {/* Footer */}
         <div className="p-3 bg-slate-200 border-t-2 border-black flex items-center justify-between gap-3">
           <span className="text-xs text-slate-600">No way out?</span>
           <button

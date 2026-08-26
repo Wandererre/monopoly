@@ -122,14 +122,19 @@ export default function TradeModal({
 
             {/* Cash Slider / Input */}
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Cash Offer (₹)</label>
+              <label className="text-xs text-slate-400 block mb-1">Cash Offer (M)</label>
               <input
                 type="number"
                 min="0"
-                max={myPlayer.money}
-                step="100"
-                value={offerCash}
-                onChange={(e) => setOfferCash(Math.max(0, Math.min(myPlayer.money, Number(e.target.value))))}
+                max={Math.max(0, myPlayer.money)}
+                step="50"
+                placeholder="0"
+                value={offerCash === 0 ? "" : offerCash}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setOfferCash(val === "" ? 0 : Math.max(0, Math.min(Math.max(0, myPlayer.money), Number(val) || 0)));
+                }}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:border-emerald-400 focus:outline-none"
               />
             </div>
@@ -174,22 +179,25 @@ export default function TradeModal({
             <div className="flex items-center justify-between">
               <span className="font-bold text-amber-400 text-sm">You Request (Receive)</span>
               <span className="text-xs text-slate-400">
-                {currentTarget?.name}'s Balance: ₹{currentTarget?.money.toLocaleString("en-IN") || 0}
+                {currentTarget?.name}'s Balance: M{currentTarget?.money.toLocaleString("en-IN") || 0}
               </span>
             </div>
 
             {/* Cash Request */}
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Cash Requested (₹)</label>
+              <label className="text-xs text-slate-400 block mb-1">Cash Requested (M)</label>
               <input
                 type="number"
                 min="0"
                 max={currentTarget?.money || 0}
-                step="100"
-                value={requestCash}
-                onChange={(e) =>
-                  setRequestCash(Math.max(0, Math.min(currentTarget?.money || 0, Number(e.target.value))))
-                }
+                step="50"
+                placeholder="0"
+                value={requestCash === 0 ? "" : requestCash}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setRequestCash(val === "" ? 0 : Math.max(0, Math.min(currentTarget?.money || 0, Number(val) || 0)));
+                }}
                 className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm focus:border-amber-400 focus:outline-none"
               />
             </div>

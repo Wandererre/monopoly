@@ -137,6 +137,9 @@ export default function Board({
     if (name === "C.S.T. MUMBAI") return ["C.S.T.", "MUMBAI"];
     if (name === "SUPER TAX") return ["SUPER", "TAX"];
     if (name === "PANAJI (GOA)") return ["PANAJI", "(GOA)"];
+    if (name === "BHUBANESHWAR" || name === "BHUBANESWAR") return ["BHUBAN-", "ESHWAR"];
+    if (name === "AHMEDABAD") return ["AHMED-", "ABAD"];
+    if (name === "CHANDIGARH") return ["CHANDI-", "GARH"];
     return [name];
   };
 
