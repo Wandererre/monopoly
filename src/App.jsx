@@ -59,6 +59,9 @@ export default function App() {
   const [soundboardModalOpen, setSoundboardModalOpen] = useState(false);
   const [soundboardCooldown, setSoundboardCooldown] = useState(0);
   const [soundboardToast, setSoundboardToast] = useState(null);
+  const [isRoomAudioBusy, setIsRoomAudioBusy] = useState(false);
+  const [busySenderName, setBusySenderName] = useState("");
+  const activeAudioRef = useRef(null);
 
   // Modals & Drawers
   const [deedsModalOpen, setDeedsModalOpen] = useState(false);
@@ -215,18 +218,42 @@ export default function App() {
     }
 
     function onSoundboardTriggered(data) {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current.currentTime = 0;
+      }
+
       try {
         const audio = new Audio(data.clipFile);
-        audio.volume = 0.85;
-        audio.play().catch(() => {});
+        activeAudioRef.current = audio;
+        setIsRoomAudioBusy(true);
+        setBusySenderName(data.senderName);
+
+        audio.onended = () => {
+          setIsRoomAudioBusy(false);
+          setBusySenderName("");
+        };
+        audio.onerror = () => {
+          setIsRoomAudioBusy(false);
+          setBusySenderName("");
+        };
+        audio.play().catch(() => {
+          setIsRoomAudioBusy(false);
+        });
       } catch (e) {
         console.warn("Soundboard audio error", e);
+        setIsRoomAudioBusy(false);
       }
 
       setSoundboardToast(data);
       setTimeout(() => {
         setSoundboardToast(null);
       }, 3500);
+
+      setTimeout(() => {
+        setIsRoomAudioBusy(false);
+        setBusySenderName("");
+      }, data.lockDurationMs || 6000);
     }
 
     socket.on("connect", onConnect);
@@ -344,7 +371,7 @@ export default function App() {
   };
 
   const handlePlaySoundboardClip = (clip) => {
-    if (soundboardCooldown > 0) return;
+    if (soundboardCooldown > 0 || isRoomAudioBusy) return;
     setSoundboardCooldown(10);
     socket.emit("play-soundboard", {
       roomId,
@@ -402,7 +429,7 @@ export default function App() {
   const myPlayer = gameState?.players?.find((p) => p.id === playerId);
   const isPendingBuy = gameState?.pendingAction?.type === "BUY_CHOICE";
 
-  // Dynamic Live Match Status Text
+  // Simple, 3rd-Person Uniform Live Match Status Text (Identical for everyone)
   const getLiveStatusText = () => {
     if (!gameState) return "";
     const curr = gameState.players?.find((p) => p.id === gameState.currentPlayerId);
@@ -410,37 +437,37 @@ export default function App() {
 
     if (gameState.pendingTrade) {
       if (gameState.pendingTrade.status === "DECLINED") {
-        return `❌ Trade offer declined by ${gameState.pendingTrade.declinedByName || "player"}`;
+        return `Trade declined by ${gameState.pendingTrade.declinedByName || "player"}`;
       }
-      return `🤝 Trade offered: ${gameState.pendingTrade.fromPlayerName} ➔ ${gameState.pendingTrade.toPlayerName}`;
+      return `${gameState.pendingTrade.fromPlayerName} is proposing a trade to ${gameState.pendingTrade.toPlayerName}`;
+    }
+
+    if (deedsModalOpen) {
+      return `${playerName} is viewing deeds`;
     }
 
     if (gameState.phase === "ROLL") {
-      return curr.id === playerId
-        ? "🎲 It's your turn! Roll the dice."
-        : `🎲 ${curr.name}'s turn • Rolling dice... (${gameState.turnTimeRemaining}s)`;
+      return `${curr.name}'s turn • rolling dice... (${gameState.turnTimeRemaining}s)`;
     }
 
     if (gameState.pendingAction?.type === "BUY_CHOICE") {
       const t = BOARD_TILES[gameState.pendingAction.tileId];
-      return curr.id === playerId
-        ? `🏠 You landed on ${t?.name || "Property"}. Buy for M${t?.price} or Pass?`
-        : `🏠 ${curr.name} is deciding to Buy/Pass ${t?.name || "Property"}...`;
+      return `${curr.name} is deciding on ${t?.name || "property"}`;
     }
 
     if (gameState.pendingAction?.type === "CARD_DRAWN") {
-      return `🃏 ${curr.name} drew a ${gameState.pendingAction.deckName || "Card"}!`;
+      return `${curr.name} drew a ${gameState.pendingAction.deckName || "card"}`;
     }
 
     if (curr.inJail) {
-      return `🔒 ${curr.name} is in Jail`;
+      return `${curr.name} is in Jail`;
     }
 
     if (gameState.logs && gameState.logs.length > 0) {
       return gameState.logs[0].message;
     }
 
-    return `Playing Turn: ${curr.name}`;
+    return `${curr.name}'s turn`;
   };
 
   if (!gameState || !gameState.gameStarted) {
@@ -670,13 +697,17 @@ export default function App() {
             onClick={() => setSoundboardModalOpen(true)}
             className="relative px-3 py-2 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 hover:border-emerald-500/60 shadow-xl transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
           >
-            <Music2 className="w-4 h-4 text-emerald-400" />
+            <Music2 className={`w-4 h-4 ${isRoomAudioBusy ? "text-blue-400 animate-spin" : "text-emerald-400"}`} />
             <span>Soundboard</span>
-            {soundboardCooldown > 0 && (
+            {isRoomAudioBusy ? (
+              <span className="px-1.5 py-0.5 rounded-md bg-blue-500 text-white font-mono font-black text-[9px] animate-pulse">
+                playing
+              </span>
+            ) : soundboardCooldown > 0 ? (
               <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-black font-mono font-black text-[9px] animate-pulse">
                 {soundboardCooldown}s
               </span>
-            )}
+            ) : null}
           </button>
 
           {/* Chat Button */}
@@ -817,6 +848,8 @@ export default function App() {
         onClose={() => setSoundboardModalOpen(false)}
         onPlaySound={handlePlaySoundboardClip}
         cooldownRemaining={soundboardCooldown}
+        isRoomAudioBusy={isRoomAudioBusy}
+        busySenderName={busySenderName}
       />
 
       {/* Drawers */}

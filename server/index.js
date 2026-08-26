@@ -306,16 +306,30 @@ io.on("connection", (socket) => {
     });
   });
 
-  // 20. Discord-Style Soundboard Broadcast
-  socket.on("play-soundboard", ({ roomId, clipId, clipName, clipFile, senderName }) => {
+  // 20. Discord-Style Soundboard Broadcast with Exclusive Room Audio Lock
+  socket.on("play-soundboard", ({ roomId, clipId, clipName, clipFile, senderName }, callback) => {
     const cleanRoom = (roomId || "").toUpperCase();
+    const now = Date.now();
+    const currentLock = roomManager.soundboardLocks ? roomManager.soundboardLocks.get(cleanRoom) : null;
+
+    if (currentLock && currentLock > now) {
+      if (callback) callback({ success: false, error: "Audio is already playing in the room!" });
+      return;
+    }
+
+    if (!roomManager.soundboardLocks) roomManager.soundboardLocks = new Map();
+    roomManager.soundboardLocks.set(cleanRoom, now + 6000);
+
     io.to(cleanRoom).emit("soundboard-triggered", {
       clipId,
       clipName,
       clipFile,
       senderName,
-      timestamp: Date.now()
+      timestamp: now,
+      lockDurationMs: 6000
     });
+
+    if (callback) callback({ success: true });
   });
 
   // 20. WebRTC Voice Signaling

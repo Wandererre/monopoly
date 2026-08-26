@@ -1,8 +1,8 @@
 import React from "react";
 import { SOUNDBOARD_CLIPS } from "../data/soundboardData.js";
-import { Volume2, X, Clock } from "lucide-react";
+import { Volume2, X, Clock, Radio } from "lucide-react";
 
-export default function SoundboardModal({ isOpen, onClose, onPlaySound, cooldownRemaining }) {
+export default function SoundboardModal({ isOpen, onClose, onPlaySound, cooldownRemaining, isRoomAudioBusy, busySenderName }) {
   if (!isOpen) return null;
 
   return (
@@ -27,8 +27,16 @@ export default function SoundboardModal({ isOpen, onClose, onPlaySound, cooldown
           </button>
         </div>
 
-        {/* Cooldown Status Banner */}
-        {cooldownRemaining > 0 && (
+        {/* Room Audio Playing Lock Banner */}
+        {isRoomAudioBusy ? (
+          <div className="px-4 py-1.5 bg-blue-500/20 border-b border-blue-500/30 flex items-center justify-between text-xs text-blue-300 font-bold animate-pulse">
+            <div className="flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+              <span>{busySenderName ? `${busySenderName} is playing audio...` : "Audio playing in room..."}</span>
+            </div>
+            <span className="text-[10px] uppercase font-mono text-blue-400 font-black">Locked</span>
+          </div>
+        ) : cooldownRemaining > 0 ? (
           <div className="px-4 py-1.5 bg-amber-500/20 border-b border-amber-500/30 flex items-center justify-between text-xs text-amber-300 font-bold animate-pulse">
             <div className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
@@ -36,12 +44,12 @@ export default function SoundboardModal({ isOpen, onClose, onPlaySound, cooldown
             </div>
             <span className="font-mono font-black text-amber-400">{cooldownRemaining}s</span>
           </div>
-        )}
+        ) : null}
 
         {/* Sound Buttons Grid (Discord Style) */}
         <div className="p-3 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[380px] overflow-y-auto custom-scrollbar">
           {SOUNDBOARD_CLIPS.map((clip) => {
-            const isDisabled = cooldownRemaining > 0;
+            const isDisabled = isRoomAudioBusy || cooldownRemaining > 0;
             return (
               <button
                 key={clip.id}

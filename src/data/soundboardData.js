@@ -1,67 +1,14 @@
 export const SOUNDBOARD_CLIPS = [
-  {
-    "id": "bonk",
-    "name": "bonk",
-    "file": "/soundboard/bonk.mpeg"
-  },
-  {
-    "id": "cat-laugh-1",
-    "name": "cat laugh 1",
-    "file": "/soundboard/cat laugh 1.mpeg"
-  },
-  {
-    "id": "crickets-chirping",
-    "name": "crickets chirping",
-    "file": "/soundboard/crickets chirping.mpeg"
-  },
-  {
-    "id": "fahhh",
-    "name": "fahhh",
-    "file": "/soundboard/fahhh.mpeg"
-  },
-  {
-    "id": "flashman",
-    "name": "flashman",
-    "file": "/soundboard/flashman.mpeg"
-  },
-  {
-    "id": "gangam-style",
-    "name": "gangam style",
-    "file": "/soundboard/gangam style.mpeg"
-  },
-  {
-    "id": "in-nomine-patris",
-    "name": "in nomine patris",
-    "file": "/soundboard/in nomine patris.aac"
-  },
-  {
-    "id": "no-no-wait-wait",
-    "name": "no-no-wait-wait",
-    "file": "/soundboard/no-no-wait-wait.mp3"
-  },
-  {
-    "id": "romance",
-    "name": "romance",
-    "file": "/soundboard/romance.mpeg"
-  },
-  {
-    "id": "sad-1",
-    "name": "sad 1",
-    "file": "/soundboard/sad 1.mpeg"
-  },
-  {
-    "id": "star-man",
-    "name": "star man",
-    "file": "/soundboard/star man.mpeg"
-  },
-  {
-    "id": "sus",
-    "name": "sus",
-    "file": "/soundboard/sus.mpeg"
-  },
-  {
-    "id": "wait-wait-wait",
-    "name": "wait wait wait",
-    "file": "/soundboard/wait wait wait.mpeg"
-  }
+  { id: "bonk", name: "bonk", file: "/soundboard/bonk.mp3" },
+  { id: "cat-laugh-1", name: "cat laugh 1", file: "/soundboard/cat laugh 1.mpeg" },
+  { id: "crickets-chirping", name: "crickets chirping", file: "/soundboard/crickets chirping.mpeg" },
+  { id: "fahhh", name: "fahhh", file: "/soundboard/fahhh.mpeg" },
+  { id: "flashman", name: "flashman", file: "/soundboard/flashman.mpeg" },
+  { id: "gangam-style", name: "gangam style", file: "/soundboard/gangam style.mpeg" },
+  { id: "in-nomine-patris", name: "in nomine patris", file: "/soundboard/in nomine patris.aac" },
+  { id: "romance", name: "romance", file: "/soundboard/romance.mpeg" },
+  { id: "sad-1", name: "sad 1", file: "/soundboard/sad 1.mpeg" },
+  { id: "star-man", name: "star man", file: "/soundboard/star man.mpeg" },
+  { id: "sus", name: "sus", file: "/soundboard/sus.mpeg" },
+  { id: "wait-wait-wait", name: "wait wait wait", file: "/soundboard/wait wait wait.mpeg" }
 ];
