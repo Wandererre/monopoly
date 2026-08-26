@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import confetti from "canvas-confetti";
-import { Play, Pause, RefreshCw, FastForward } from "lucide-react";
+import { Play, Pause, RefreshCw, Volume2, VolumeX } from "lucide-react";
 import { PLAYER_TOKENS } from "../../server/data/boardData.js";
-import { sounds } from "../utils/audio.js";
 
 export default function GameOverModal({ winner, players = [], gameState = {}, onPlayAgain }) {
-  const [stage, setStage] = useState("logo"); // "logo" -> "crawl"
+  const [stage, setStage] = useState("logo"); // "logo" (0-4.5s) -> "crawl" (4.5s+)
   const [isPaused, setIsPaused] = useState(false);
   const [crawlSpeed, setCrawlSpeed] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef(null);
 
   const properties = gameState.properties || {};
   const logs = gameState.logs || [];
@@ -19,7 +20,9 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
     return nwB - nwA;
   });
 
-  const winnerToken = winner ? PLAYER_TOKENS.find(t => t.id === winner.token) || PLAYER_TOKENS[0] : null;
+  // Resilient winner resolution for any game over mode
+  const effectiveWinner = winner || (sortedPlayers.length > 0 && !sortedPlayers[0].bankrupt ? sortedPlayers[0] : sortedPlayers[0] || null);
+  const winnerToken = effectiveWinner ? PLAYER_TOKENS.find(t => t.id === effectiveWinner.token) || PLAYER_TOKENS[0] : null;
 
   // Property counts per player
   const playerPropertyCounts = {};
@@ -35,26 +38,46 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
   const totalJailEvents = logs.filter(l => l.type === "jail").length;
 
   useEffect(() => {
-    sounds.playFanfare();
+    // Play authentic 1977 Star Wars soundtrack
+    try {
+      const audio = new Audio("/sounds/star-wars-theme.mp4");
+      audio.volume = 0.60;
+      audio.play().catch(() => {});
+      audioRef.current = audio;
+    } catch (e) {
+      console.warn("Star Wars audio error", e);
+    }
 
-    // Trigger celebratory confetti
-    confetti({ particleCount: 35, spread: 60, origin: { y: 0.8 } });
+    // Celebratory victory confetti
+    confetti({ particleCount: 40, spread: 65, origin: { y: 0.8 } });
 
-    // Transition from Logo Zoom to Crawl after 5.5s
+    // Transition from Logo Zoom to Crawl at 4.5 seconds (exact 1977 musical sync)
     const timer = setTimeout(() => {
       setStage("crawl");
-    }, 5500);
+    }, 4500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    };
   }, []);
+
+  const toggleAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center overflow-hidden select-none font-sans">
       {/* 1977 Authentic Crisp Starfield Background */}
       <div className="absolute inset-0 bg-black">
-        {/* Tiny stars */}
         <div
-          className="absolute inset-0 opacity-80"
+          className="absolute inset-0 opacity-85"
           style={{
             backgroundImage: `
               radial-gradient(1px 1px at 25px 35px, #ffffff, transparent),
@@ -67,12 +90,12 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
               radial-gradient(2px 2px at 850px 180px, #ffffff, transparent),
               radial-gradient(1px 1px at 960px 70px, #e2e8f0, transparent)
             `,
-            backgroundSize: "600px 400px"
+            backgroundSize: "550px 350px"
           }}
         />
       </div>
 
-      {/* STAGE 1: 1977 Title Logo Zoom Out */}
+      {/* STAGE 1: 1977 Title Logo Zoom Out (0s - 4.5s) */}
       {stage === "logo" && (
         <div className="relative z-20 flex flex-col items-center justify-center animate-starwars-1977-logo pointer-events-none">
           <h1
@@ -94,7 +117,7 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
         </div>
       )}
 
-      {/* STAGE 2: Authentic 1977 Crawl */}
+      {/* STAGE 2: Authentic 1977 Crawl (4.5s+) */}
       {stage === "crawl" && (
         <div className="relative z-20 w-full h-full flex flex-col items-center justify-center overflow-hidden">
           {/* Top subtle fade into infinite space */}
@@ -122,32 +145,32 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
               {/* Episode Header */}
               <div className="space-y-3">
                 <div className="text-2xl sm:text-3xl font-black uppercase tracking-[0.3em]">
-                  EPISODE {players.length}
+                  EPISODE {players.length || 1}
                 </div>
                 <div className="text-3xl sm:text-5xl font-black uppercase tracking-[0.25em]">
-                  {winner ? "THE SUPREME TYCOON" : "A GALAXY AT PEACE"}
+                  {effectiveWinner ? "THE SUPREME TYCOON" : "A REALM AT PEACE"}
                 </div>
               </div>
 
               {/* Main Narrative Paragraphs */}
               <p className="text-lg sm:text-2xl leading-relaxed text-justify">
-                {winner ? (
+                {effectiveWinner ? (
                   <>
-                    It is a period of financial triumph. {winner.name}, supreme tycoon of the realm,
+                    It is a period of financial triumph. {effectiveWinner.name}, supreme tycoon of the realm,
                     has outmaneuvered all rivals in a fierce contest of deeds, negotiations, and relentless fortune.
                   </>
                 ) : (
                   <>
                     The boardroom has reached an honorable conclusion. The great tycoons of Bharat
-                    have settled their accounts and completed their epic trial of fortunes.
+                    have settled their accounts and concluded their epic trial of fortunes.
                   </>
                 )}
               </p>
 
-              {winner && (
+              {effectiveWinner && (
                 <p className="text-lg sm:text-2xl leading-relaxed text-justify">
-                  With an insurmountable net worth of M{(winner.netWorth || winner.money).toLocaleString("en-IN")} and
-                  total control over {playerPropertyCounts[winner.id] || 0} strategic properties,
+                  With an insurmountable net worth of M{(effectiveWinner.netWorth || effectiveWinner.money).toLocaleString("en-IN")} and
+                  total control over {playerPropertyCounts[effectiveWinner.id] || 0} strategic properties,
                   the opposing empires could no longer sustain the mounting debts of the realm.
                 </p>
               )}
@@ -220,6 +243,14 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
         </button>
 
         <button
+          onClick={toggleAudio}
+          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[#FFE81F] border border-zinc-700 transition cursor-pointer"
+          title={isMuted ? "Unmute Music" : "Mute Music"}
+        >
+          {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+
+        <button
           onClick={onPlayAgain}
           className="px-3 py-1 rounded-lg bg-[#FFE81F] hover:bg-yellow-400 text-black font-black text-xs transition flex items-center gap-1.5 cursor-pointer shadow ml-2"
         >
@@ -235,8 +266,8 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
             transform: scale(1.6);
             opacity: 1;
           }
-          75% {
-            transform: scale(0.4);
+          70% {
+            transform: scale(0.35);
             opacity: 1;
           }
           100% {
@@ -248,7 +279,7 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
         @keyframes starwars-1977-crawl {
           0% {
             top: 100%;
-            transform: rotateX(25deg) translateY(80vh);
+            transform: rotateX(25deg) translateY(75vh);
           }
           100% {
             top: 0%;

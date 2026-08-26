@@ -64,7 +64,7 @@ export default function Lobby({
 
   const handleCreate = (e) => {
     if (e) e.preventDefault();
-    sounds.playBuy();
+    sounds.playCardDraw();
 
     let finalName = name.trim();
     if (!finalName) {
@@ -84,7 +84,7 @@ export default function Lobby({
     const codeToJoin = (targetCode || joinCode).trim().toUpperCase();
     if (!codeToJoin) return;
 
-    sounds.playBuy();
+    sounds.playCardDraw();
     let finalName = name.trim();
     if (!finalName) {
       finalName = `Player_${Math.floor(100 + Math.random() * 900)}`;
@@ -196,7 +196,7 @@ export default function Lobby({
           {isHost ? (
             <button
               onClick={() => {
-                sounds.playCashGain();
+                sounds.playFanfare();
                 onStartGame();
               }}
               disabled={!canStart}
