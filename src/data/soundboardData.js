@@ -1,16 +1,22 @@
 export const SOUNDBOARD_CLIPS = [
+  { id: "beg", name: "beg", file: "/soundboard/beg.mp3" },
   { id: "bonk", name: "bonk", file: "/soundboard/bonk.mp3" },
   { id: "cat-laugh-1", name: "cat laugh 1", file: "/soundboard/cat laugh 1.mpeg" },
   { id: "crickets-chirping", name: "crickets chirping", file: "/soundboard/crickets chirping.mpeg" },
   { id: "fahhh", name: "fahhh", file: "/soundboard/fahhh.mpeg" },
   { id: "flashman", name: "flashman", file: "/soundboard/flashman.mpeg" },
+  { id: "freaky-scary", name: "freaky scary", file: "/soundboard/freaky scary.mp3" },
   { id: "gangam-style", name: "gangam style", file: "/soundboard/gangam style.mpeg" },
+  { id: "imposter", name: "imposter", file: "/soundboard/imposter.mp3" },
   { id: "in-nomine-patris", name: "in nomine patris", file: "/soundboard/in nomine patris.aac" },
   { id: "money-money-money", name: "money money money", file: "/soundboard/money money money.mp3" },
   { id: "romance", name: "romance", file: "/soundboard/romance.mpeg" },
   { id: "sad-1", name: "sad 1", file: "/soundboard/sad 1.mpeg" },
+  { id: "slap", name: "slap", file: "/soundboard/slap.mp3" },
+  { id: "snore", name: "snore", file: "/soundboard/snore.mp3" },
   { id: "star-man", name: "star man", file: "/soundboard/star man.mpeg" },
   { id: "sus", name: "sus", file: "/soundboard/sus.mpeg" },
+  { id: "the-end", name: "the end", file: "/soundboard/the end.mp3" },
   { id: "threaten", name: "threaten", file: "/soundboard/threaten.mp3" },
   { id: "wait-wait-wait", name: "wait wait wait", file: "/soundboard/wait wait wait.mpeg" }
 ];
