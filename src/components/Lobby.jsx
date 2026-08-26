@@ -306,12 +306,12 @@ export default function Lobby({
         {/* Quick Action: Create Room or Enter Private Code */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
+            type="button"
             onClick={handleCreate}
-            disabled={isCreating}
-            className="w-full py-3.5 bg-[#ED1B24] hover:bg-red-700 text-white font-black text-sm rounded-xl border-2 border-black shadow transition cursor-pointer hover:scale-[1.02] flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-[#ED1B24] hover:bg-red-700 active:scale-95 text-white font-black text-sm rounded-xl border-2 border-black shadow transition cursor-pointer hover:scale-[1.02] flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" />
-            {isCreating ? "Creating..." : "Create New Room"}
+            <span>Create New Room</span>
           </button>
 
           <div className="flex gap-1.5">

@@ -314,29 +314,67 @@ export default function App() {
   const handleCreateRoom = (name, token, color, settings) => {
     setPlayerName(name);
     setPlayerToken(token);
-    socket.emit("create-room", { hostData: { id: playerId, name, token, color }, settings }, (res) => {
-      if (res && res.success) {
-        setRoomId(res.roomId);
-        setGameState(res.state);
-        savePlayerSession(name, token, res.roomId);
-      } else {
-        alert(res?.error || "Failed to create room");
-      }
-    });
+    savePlayerSession(name, token, "");
+
+    const payload = {
+      hostData: { id: playerId, name, token, color },
+      settings: settings || { startingCash: 1500, turnTimerSeconds: 15 }
+    };
+
+    const emitCreate = () => {
+      socket.emit("create-room", payload, (res) => {
+        if (res && res.success) {
+          setRoomId(res.roomId);
+          setGameState(res.state);
+          savePlayerSession(name, token, res.roomId);
+        } else {
+          alert(res?.error || "Failed to create room. Please try again.");
+        }
+      });
+    };
+
+    if (socket.connected) {
+      emitCreate();
+    } else {
+      socket.connect();
+      socket.once("connect", emitCreate);
+      setTimeout(() => {
+        emitCreate();
+      }, 400);
+    }
   };
 
   const handleJoinRoom = (code, name, token, color) => {
     setPlayerName(name);
     setPlayerToken(token);
-    socket.emit("join-room", { roomId: code, playerData: { id: playerId, name, token, color } }, (res) => {
-      if (res && res.success) {
-        setRoomId(res.roomId);
-        setGameState(res.state);
-        savePlayerSession(name, token, res.roomId);
-      } else {
-        alert(res?.error || "Failed to join room");
-      }
-    });
+    const cleanCode = (code || "").trim().toUpperCase();
+
+    const payload = {
+      roomId: cleanCode,
+      playerData: { id: playerId, name, token, color }
+    };
+
+    const emitJoin = () => {
+      socket.emit("join-room", payload, (res) => {
+        if (res && res.success) {
+          setRoomId(res.roomId);
+          setGameState(res.state);
+          savePlayerSession(name, token, res.roomId);
+        } else {
+          alert(res?.error || "Failed to join room");
+        }
+      });
+    };
+
+    if (socket.connected) {
+      emitJoin();
+    } else {
+      socket.connect();
+      socket.once("connect", emitJoin);
+      setTimeout(() => {
+        emitJoin();
+      }, 400);
+    }
   };
 
   const handleStartGame = () => {
