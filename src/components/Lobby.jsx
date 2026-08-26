@@ -72,12 +72,19 @@ export default function Lobby({
       setName(finalName);
     }
 
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     setIsCreating(true);
     const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
     onCreateRoom(finalName, randToken.id, randToken.color, {
       startingCash: Number(startingCash),
       turnTimerSeconds: 15
     });
+
+    // Auto-reset creating flag after 2s so button is never locked
+    setTimeout(() => setIsCreating(false), 2000);
   };
 
   const handleJoin = (targetCode) => {
@@ -89,6 +96,10 @@ export default function Lobby({
     if (!finalName) {
       finalName = `Player_${Math.floor(100 + Math.random() * 900)}`;
       setName(finalName);
+    }
+
+    if (!socket.connected) {
+      socket.connect();
     }
 
     const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
