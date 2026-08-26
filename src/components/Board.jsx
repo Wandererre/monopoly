@@ -46,6 +46,21 @@ export default function Board({
           steps.push(cur);
         }
 
+        // For large teleport jumps (>6 steps, e.g. Go to Jail, Card Advance to Go):
+        // Float directly to destination instead of slow step-by-step
+        if (steps.length > 6) {
+          sounds.playJail();
+          setDisplayedPositions((prev) => ({ ...prev, [p.id]: targetPos }));
+          setTimeout(() => {
+            animationQueueRef.current[p.id] = false;
+            setIsAnimatingMovement(false);
+            if (onMovementComplete) {
+              onMovementComplete();
+            }
+          }, 450);
+          return;
+        }
+
         let stepIndex = 0;
         const stepInterval = setInterval(() => {
           if (stepIndex < steps.length) {
@@ -61,7 +76,7 @@ export default function Board({
               onMovementComplete();
             }
           }
-        }, 280);
+        }, 220);
       }
     });
   }, [players]);
@@ -552,7 +567,7 @@ export default function Board({
               ) : (
                 <span className="px-3 py-1 bg-white/90 border border-black rounded-full text-xs font-bold text-slate-900 shadow-sm flex items-center gap-1.5">
                   <span>
-                    Turn: <strong>{players.find((p) => p.id === gameState.currentPlayerId)?.name}</strong>
+                    Turn: <strong style={{ color: players.find((p) => p.id === gameState.currentPlayerId)?.color || "#000" }}>{players.find((p) => p.id === gameState.currentPlayerId)?.name}</strong>
                   </span>
                   {typeof gameState.turnTimeRemaining === "number" && (
                     <span className="bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded-md font-mono text-[11px] font-black">

@@ -61,7 +61,7 @@ export default function App() {
   const [voiceVolume, setVoiceVolume] = useState(100);
 
   // Soundboard State
-  const [soundboardVolume, setSoundboardVolume] = useState(70);
+  const [soundboardVolume, setSoundboardVolume] = useState(60);
   const [soundboardModalOpen, setSoundboardModalOpen] = useState(false);
   const [soundboardCooldown, setSoundboardCooldown] = useState(0);
   const [soundboardToast, setSoundboardToast] = useState(null);
@@ -240,7 +240,7 @@ export default function App() {
 
       try {
         const audio = new Audio(data.clipFile);
-        audio.volume = isSoundMuted ? 0 : Math.max(0, Math.min(1.0, (soundboardVolume / 100) * 0.65));
+        audio.volume = isSoundMuted ? 0 : Math.max(0, Math.min(1.0, (soundboardVolume / 100) * 0.40));
         activeAudioRef.current = audio;
         setIsRoomAudioBusy(true);
         setBusySenderName(data.senderName);
@@ -587,7 +587,10 @@ export default function App() {
                 >
                   <span className={isMoreThanFourPlayers ? "text-base" : "text-lg"}>{tok.emoji}</span>
                   <div className="flex items-center gap-1">
-                    <span className={`font-black truncate ${isMoreThanFourPlayers ? "max-w-[55px] sm:max-w-[80px]" : "max-w-[75px] sm:max-w-[110px]"}`}>
+                    <span
+                      className={`font-black truncate drop-shadow-sm ${isMoreThanFourPlayers ? "max-w-[55px] sm:max-w-[80px]" : "max-w-[75px] sm:max-w-[110px]"}`}
+                      style={{ color: p.color || "#000" }}
+                    >
                       {p.name}
                     </span>
                     {isSpeaking && (
@@ -634,15 +637,24 @@ export default function App() {
           })}
         </div>
 
-        {/* Right Controls: Clean Invite + Connection Status */}
+        {/* Right Controls: Invite + Settings + Connection Status */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
           {/* Invite Share Link */}
           <button
             onClick={handleCopyLink}
-            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#ED1B24] hover:bg-red-700 text-white font-black text-xs border-2 border-black transition flex items-center gap-1.5 shadow-md cursor-pointer"
           >
             {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">{copiedLink ? "Copied!" : "Invite"}</span>
+          </button>
+
+          {/* Settings Icon-Only Button */}
+          <button
+            onClick={() => setSettingsModalOpen(true)}
+            className="p-1.5 sm:p-2 rounded-xl bg-black/50 hover:bg-black/80 text-slate-200 border-2 border-slate-700 hover:border-slate-500 transition cursor-pointer shadow-md"
+            title="Game Settings (Audio, Voice & Controls)"
+          >
+            <Settings className="w-4 h-4 text-slate-300" />
           </button>
 
           {/* Connection Status Indicator */}
@@ -702,68 +714,57 @@ export default function App() {
 
       {/* Structured Non-Overlapping Bottom Bar */}
       <footer className="w-full max-w-7xl mx-auto px-2 sm:px-4 pb-2 sm:pb-3 pt-1 z-30 flex flex-wrap items-center justify-between gap-2 shrink-0">
-        {/* Left Side: Live Ticker + Tools */}
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        {/* Left Side: Live Ticker + Clean Icon-Only Tools */}
+        <div className="flex items-center gap-2">
           {/* Live Match Update Text Ticker */}
-          <div className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-black/85 border border-slate-700 shadow-md backdrop-blur-md text-[11px] sm:text-xs font-bold text-slate-200">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-black/85 border border-slate-700 shadow-md backdrop-blur-md text-[11px] sm:text-xs font-bold text-slate-200">
             <span className="flex h-2 w-2 relative shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="truncate max-w-[150px] sm:max-w-xs">{getLiveStatusText()}</span>
+            <span className="truncate max-w-[140px] sm:max-w-xs">{getLiveStatusText()}</span>
           </div>
 
-          {/* Soundboard Button */}
+          {/* Soundboard Icon-Only Button */}
           <button
             onClick={() => setSoundboardModalOpen(true)}
-            className="relative px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 hover:border-emerald-500/60 shadow-md transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            title="Soundboard Meme Clips"
+            className="relative p-2 sm:p-2.5 rounded-2xl bg-black/80 hover:bg-black text-white border-2 border-slate-700 hover:border-emerald-500/60 shadow-md transition flex items-center justify-center backdrop-blur-md cursor-pointer"
           >
-            <Music2 className={`w-3.5 h-3.5 ${isRoomAudioBusy ? "text-blue-400 animate-spin" : "text-emerald-400"}`} />
-            <span className="hidden sm:inline">Soundboard</span>
-            <span className="sm:hidden">SFX</span>
+            <Music2 className={`w-4 h-4 ${isRoomAudioBusy ? "text-blue-400 animate-spin" : "text-emerald-400"}`} />
             {isRoomAudioBusy ? (
-              <span className="px-1.5 py-0.5 rounded-md bg-blue-500 text-white font-mono font-black text-[9px] animate-pulse">
+              <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded-md bg-blue-500 text-white font-mono font-black text-[8px] animate-pulse">
                 playing
               </span>
             ) : soundboardCooldown > 0 ? (
-              <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-black font-mono font-black text-[9px] animate-pulse">
+              <span className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded-md bg-amber-500 text-black font-mono font-black text-[8px] animate-pulse">
                 {soundboardCooldown}s
               </span>
             ) : null}
           </button>
 
-          {/* Chat Button */}
+          {/* Chat Icon-Only Button */}
           <button
             onClick={() => {
               setChatDrawerOpen(true);
               setHasUnreadChat(false);
             }}
-            className="relative px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-md transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            title="Live Chat"
+            className="relative p-2 sm:p-2.5 rounded-2xl bg-black/80 hover:bg-black text-white border-2 border-slate-700 shadow-md transition flex items-center justify-center backdrop-blur-md cursor-pointer"
           >
-            <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-            <span>Chat</span>
+            <MessageSquare className="w-4 h-4 text-blue-400" />
             {hasUnreadChat && (
               <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 animate-ping" />
             )}
           </button>
 
-          {/* Activity Log Button */}
+          {/* Activity Log Icon-Only Button */}
           <button
             onClick={() => setActivityDrawerOpen(true)}
-            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 shadow-md transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            title="Game Activity Log"
+            className="p-2 sm:p-2.5 rounded-2xl bg-black/80 hover:bg-black text-white border-2 border-slate-700 shadow-md transition flex items-center justify-center backdrop-blur-md cursor-pointer"
           >
-            <ScrollText className="w-3.5 h-3.5 text-amber-400" />
-            <span>Log</span>
-          </button>
-
-          {/* Settings Button */}
-          <button
-            onClick={() => setSettingsModalOpen(true)}
-            className="relative px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-2xl bg-black/80 hover:bg-black text-white font-bold text-xs border-2 border-slate-700 hover:border-slate-500 shadow-md transition flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
-            title="Settings (Audio, Voice, SFX, Host End Game)"
-          >
-            <Settings className="w-3.5 h-3.5 text-slate-300" />
-            <span className="hidden sm:inline">Settings</span>
+            <ScrollText className="w-4 h-4 text-amber-400" />
           </button>
         </div>
 
