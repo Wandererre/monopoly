@@ -4,6 +4,7 @@ import { sounds } from "./utils/audio.js";
 import { voiceManager } from "./utils/webrtc.js";
 import Lobby from "./components/Lobby.jsx";
 import Board from "./components/Board.jsx";
+import Board3D from "./components/Board3D.jsx";
 import DeedsBrowserModal from "./components/DeedsBrowserModal.jsx";
 import DebtResolutionModal from "./components/DebtResolutionModal.jsx";
 import TileModal from "./components/TileModal.jsx";
@@ -38,7 +39,8 @@ import {
   Radio,
   Music2,
   Settings,
-  Unplug
+  Unplug,
+  Box
 } from "lucide-react";
 
 export default function App() {
@@ -54,6 +56,7 @@ export default function App() {
   const [connected, setConnected] = useState(socket.connected);
   const [lastActiveRoom, setLastActiveRoom] = useState(() => localStorage.getItem("vyapar_last_room") || "");
   const [boardRotation, setBoardRotation] = useState(0);
+  const [is3DView, setIs3DView] = useState(true);
 
   // Voice Chat State
   const [voiceStates, setVoiceStates] = useState(new Map());
@@ -877,35 +880,70 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Focus: Physical Board + Left Rotate Control */}
+      {/* Main Focus: Physical 3D / 2D Board + Left 2D/3D & Rotate Controls */}
       <main className="flex-1 min-h-0 flex items-center justify-center p-1 sm:p-2 my-auto relative overflow-hidden">
-        {/* Left Side: Smooth Board Rotation Button */}
-        <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 hidden sm:block">
+        {/* Left Side: 2D/3D Mode Switcher & 2D Rotate Button */}
+        <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 hidden sm:flex flex-col gap-2">
+          {/* Toggle between 3D and 2D */}
           <button
-            onClick={handleRotateBoard}
+            onClick={() => setIs3DView((prev) => !prev)}
             className="p-2.5 sm:p-3 bg-black/80 hover:bg-black text-white rounded-2xl border-2 border-slate-700 shadow-2xl transition flex flex-col items-center gap-1 backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95"
-            title="Rotate Board 90°"
+            title={is3DView ? "Switch to 2D Classic View" : "Switch to 3D Interactive View"}
           >
-            <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-            <span className="text-[9px] font-black uppercase text-slate-300">Rotate</span>
+            <Box className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+            <span className="text-[9px] font-black uppercase text-slate-300">
+              {is3DView ? "2D" : "3D"}
+            </span>
           </button>
+
+          {/* 2D Mode Rotate Button */}
+          {!is3DView && (
+            <button
+              onClick={handleRotateBoard}
+              className="p-2.5 sm:p-3 bg-black/80 hover:bg-black text-white rounded-2xl border-2 border-slate-700 shadow-2xl transition flex flex-col items-center gap-1 backdrop-blur-md cursor-pointer hover:scale-105 active:scale-95 animate-in fade-in duration-200"
+              title="Rotate Board 90°"
+            >
+              <RotateCw className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+              <span className="text-[9px] font-black uppercase text-slate-300">Rotate</span>
+            </button>
+          )}
         </div>
 
-        <Board
-          gameState={gameState}
-          onTileClick={(tile) => setInspectedTile(tile)}
-          onRollDice={handleRollDice}
-          onBuyProperty={handleBuyProperty}
-          onPassProperty={handlePassProperty}
-          onPayJailFine={handlePayJailFine}
-          onUseJailCard={handleUseJailCard}
-          onEndTurn={handleEndTurn}
-          playerId={playerId}
-          isMyTurn={isMyTurn}
-          rotationAngle={boardRotation}
-          onMovementComplete={handleMovementComplete}
-          onOpenCards={(tab) => setCardsModalOpen(tab)}
-        />
+        {is3DView ? (
+          <Board3D
+            gameState={gameState}
+            onTileClick={(tileId) => {
+              const tile = BOARD_TILES[tileId];
+              if (tile) setInspectedTile(tile);
+            }}
+            onRollDice={handleRollDice}
+            onBuyProperty={handleBuyProperty}
+            onPassProperty={handlePassProperty}
+            onPayJailFine={handlePayJailFine}
+            onUseJailCard={handleUseJailCard}
+            onEndTurn={handleEndTurn}
+            playerId={playerId}
+            isMyTurn={isMyTurn}
+            onMovementComplete={handleMovementComplete}
+            onOpenCards={(tab) => setCardsModalOpen(tab)}
+          />
+        ) : (
+          <Board
+            gameState={gameState}
+            onTileClick={(tile) => setInspectedTile(tile)}
+            onRollDice={handleRollDice}
+            onBuyProperty={handleBuyProperty}
+            onPassProperty={handlePassProperty}
+            onPayJailFine={handlePayJailFine}
+            onUseJailCard={handleUseJailCard}
+            onEndTurn={handleEndTurn}
+            playerId={playerId}
+            isMyTurn={isMyTurn}
+            rotationAngle={boardRotation}
+            onMovementComplete={handleMovementComplete}
+            onOpenCards={(tab) => setCardsModalOpen(tab)}
+          />
+        )}
       </main>
 
       {/* Floating Soundboard Activity Notification */}
