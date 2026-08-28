@@ -281,12 +281,25 @@ export default function App() {
       }
     }
 
+    function onRoomClosed(data) {
+      alert(data?.message || "The room has been closed by the host.");
+      clearPlayerRoomSession();
+      setLastActiveRoom("");
+      voiceManager.leaveVoice();
+      setRoomId("");
+      setGameState(null);
+      if (window.location.search) {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("game-state", onGameState);
     socket.on("timer-tick", onTimerTick);
     socket.on("new-chat", onNewChat);
     socket.on("soundboard-triggered", onSoundboardTriggered);
+    socket.on("room-closed", onRoomClosed);
 
     return () => {
       socket.off("connect", onConnect);
@@ -295,6 +308,7 @@ export default function App() {
       socket.off("timer-tick", onTimerTick);
       socket.off("new-chat", onNewChat);
       socket.off("soundboard-triggered", onSoundboardTriggered);
+      socket.off("room-closed", onRoomClosed);
     };
   }, [playerId, playerName, playerToken, chatDrawerOpen]);
 
@@ -413,9 +427,28 @@ export default function App() {
   };
 
   const handleStartGame = () => {
-    socket.emit("start-game", { roomId, playerId }, (res) => {
-      if (res && !res.success) alert(res.error);
-    });
+    if (!roomId) return;
+    const payload = { roomId, playerId };
+
+    const onStartResult = (res) => {
+      if (res && res.success && res.state) {
+        setGameState(res.state);
+      } else if (res && !res.success && res.error) {
+        alert(res.error);
+      }
+    };
+
+    socket.emit("start-game", payload, onStartResult);
+
+    // Dual-transport REST fallback
+    fetch("/api/start-game", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then((r) => r.json())
+      .then(onStartResult)
+      .catch(() => {});
   };
 
   const handleRollDice = () => {

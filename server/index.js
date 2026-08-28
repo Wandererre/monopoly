@@ -89,6 +89,23 @@ app.post("/api/leave-room", (req, res) => {
   }
 });
 
+app.post("/api/start-game", (req, res) => {
+  try {
+    const { roomId, playerId } = req.body;
+    const engine = roomManager.getRoom(roomId);
+    if (!engine) return res.status(404).json({ success: false, error: "Room not found" });
+    const result = engine.startGame(playerId);
+    if (result.success) {
+      roomManager.broadcastGameState(roomId);
+      roomManager.broadcastPublicRooms();
+      return res.json({ success: true, state: engine.getGameState() });
+    }
+    return res.status(400).json(result);
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Socket.io Events
 io.on("connection", (socket) => {
   console.log(`[Socket Connected] ID: ${socket.id}`);

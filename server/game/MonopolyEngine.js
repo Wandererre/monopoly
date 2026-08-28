@@ -144,13 +144,12 @@ export class MonopolyEngine {
     const p = this.players.find(pl => pl.id === playerId);
     if (!p) return { success: false, error: "Player not found." };
 
+    const wasHost = p.isHost;
+
     if (!this.gameStarted) {
       this.players = this.players.filter(pl => pl.id !== playerId);
-      if (p.isHost && this.players.length > 0) {
-        this.players[0].isHost = true;
-      }
       this.addLog(`${p.name} left the room.`, "info");
-      return { success: true, leftLobby: true };
+      return { success: true, leftLobby: true, wasHost };
     }
 
     p.bankrupt = true;
@@ -175,12 +174,20 @@ export class MonopolyEngine {
       this.autoPlayTurn();
     }
 
-    return { success: true, forfeit: true };
+    return { success: true, forfeit: true, wasHost };
   }
 
   startGame(playerId) {
-    const host = this.players.find(p => p.id === playerId && p.isHost);
-    if (!host) return { success: false, error: "Only host can start the game." };
+    let host = this.players.find(p => p.id === playerId && p.isHost);
+    if (!host) {
+      // If the caller is the first player or only player, promote to host
+      if (this.players.length > 0 && (this.players[0].id === playerId || this.players.length === 1)) {
+        this.players[0].isHost = true;
+        host = this.players[0];
+      } else {
+        return { success: false, error: "Only the room host can start the game." };
+      }
+    }
     if (this.players.length < 1) return { success: false, error: "No players in room." };
 
     this.gameStarted = true;

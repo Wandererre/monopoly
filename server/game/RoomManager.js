@@ -68,10 +68,11 @@ export class RoomManager {
     const res = engine.quitPlayer(playerId);
     this.playerToRoom.delete(playerId);
 
-    // If room has no active connected players, delete it immediately
     const anyConnected = engine.players.some(p => p.isConnected);
-    if (!anyConnected || engine.players.length === 0) {
-      console.log(`[Room Deleted] Room ${cleanCode} has no connected players.`);
+    // If the leaving player was the host OR if no players remain connected: DELETE the entire room
+    if (res.wasHost || !anyConnected || engine.players.length === 0) {
+      console.log(`[Room Closed & Deleted] Host left or room empty. Deleting room ${cleanCode}.`);
+      this.io.to(cleanCode).emit("room-closed", { message: "The host has closed this room." });
       this.rooms.delete(cleanCode);
     } else {
       this.broadcastGameState(cleanCode);
