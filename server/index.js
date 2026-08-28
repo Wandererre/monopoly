@@ -79,6 +79,16 @@ app.post("/api/join-room", (req, res) => {
   }
 });
 
+app.post("/api/leave-room", (req, res) => {
+  try {
+    const { roomId, playerId } = req.body;
+    const result = roomManager.leaveRoom(roomId, playerId);
+    return res.json(result);
+  } catch (e) {
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // Socket.io Events
 io.on("connection", (socket) => {
   console.log(`[Socket Connected] ID: ${socket.id}`);
@@ -90,6 +100,12 @@ io.on("connection", (socket) => {
     const list = roomManager.getPublicRooms();
     if (callback) callback(list);
     else socket.emit("public-rooms-list", list);
+  });
+
+  socket.on("leave-room", ({ roomId, playerId }, callback) => {
+    const res = roomManager.leaveRoom(roomId, playerId);
+    socket.leave((roomId || "").toUpperCase());
+    if (callback) callback(res);
   });
 
   // 1. Create Room

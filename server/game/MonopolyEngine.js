@@ -140,6 +140,44 @@ export class MonopolyEngine {
     }
   }
 
+  quitPlayer(playerId) {
+    const p = this.players.find(pl => pl.id === playerId);
+    if (!p) return { success: false, error: "Player not found." };
+
+    if (!this.gameStarted) {
+      this.players = this.players.filter(pl => pl.id !== playerId);
+      if (p.isHost && this.players.length > 0) {
+        this.players[0].isHost = true;
+      }
+      this.addLog(`${p.name} left the room.`, "info");
+      return { success: true, leftLobby: true };
+    }
+
+    p.bankrupt = true;
+    p.isConnected = false;
+    this.addLog(`${p.name} forfeited and left the match.`, "warning");
+
+    // Relinquish owned properties back to the bank
+    Object.keys(this.properties).forEach(tileId => {
+      if (this.properties[tileId].owner === playerId) {
+        this.properties[tileId].owner = null;
+        this.properties[tileId].houses = 0;
+        this.properties[tileId].mortgaged = false;
+      }
+    });
+
+    const activePlayers = this.players.filter(pl => !pl.bankrupt && pl.isConnected);
+    if (activePlayers.length <= 1) {
+      this.phase = "GAME_OVER";
+      this.winner = activePlayers[0] || this.players.find(pl => !pl.bankrupt) || this.players[0];
+      this.addLog(`Game over! ${this.winner?.name || "Player"} is crowned winner!`, "celebrate");
+    } else if (this.getCurrentPlayer()?.id === playerId) {
+      this.autoPlayTurn();
+    }
+
+    return { success: true, forfeit: true };
+  }
+
   startGame(playerId) {
     const host = this.players.find(p => p.id === playerId && p.isHost);
     if (!host) return { success: false, error: "Only host can start the game." };

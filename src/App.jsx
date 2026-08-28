@@ -52,6 +52,7 @@ export default function App() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [isSoundMuted, setIsSoundMuted] = useState(false);
   const [connected, setConnected] = useState(socket.connected);
+  const [lastActiveRoom, setLastActiveRoom] = useState(() => localStorage.getItem("vyapar_last_room") || "");
   const [boardRotation, setBoardRotation] = useState(0);
 
   // Voice Chat State
@@ -79,12 +80,15 @@ export default function App() {
   const [tradeTarget, setTradeTarget] = useState(null);
   const [cardPopupData, setCardPopupData] = useState(null);
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [tradeModalOpen, setTradeModalOpen] = useState(false);
+  const [incomingTradeModalOpen, setIncomingTradeModalOpen] = useState(false);
 
   // Multi-Transaction Array State: playerId -> Array of { id, delta }
   const [transactions, setTransactions] = useState({});
   const prevMoneyRef = useRef({});
   const prevPositionsRef = useRef({});
   const pendingTxRef = useRef(null);
+  const pendingCardRef = useRef(null);
 
   // Soundboard 10s cooldown ticker
   useEffect(() => {
@@ -182,8 +186,6 @@ export default function App() {
     // Play 1 single crisp Ka-Ching sound exclusively when money is transacted
     sounds.playCashRegister();
   };
-
-  const pendingCardRef = useRef(null);
 
   const handleMovementComplete = () => {
     if (pendingTxRef.current) {
@@ -527,12 +529,54 @@ export default function App() {
     }
   };
 
-  const handlePlayAgain = () => {
+  const handleLeaveRoom = () => {
+    const targetRoom = roomId || lastActiveRoom;
+    if (targetRoom && playerId) {
+      socket.emit("leave-room", { roomId: targetRoom, playerId });
+      fetch("/api/leave-room", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId: targetRoom, playerId })
+      }).catch(() => {});
+    }
     clearPlayerRoomSession();
+    setLastActiveRoom("");
     voiceManager.leaveVoice();
     setRoomId("");
     setGameState(null);
-    window.location.href = window.location.origin;
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  };
+
+  const handleRejoinRoom = (code) => {
+    const targetCode = (code || lastActiveRoom).toUpperCase();
+    if (!targetCode) return;
+    if (!socket.connected) socket.connect();
+    socket.emit("reconnect-player", { roomId: targetCode, playerId }, (res) => {
+      if (res && res.success) {
+        setRoomId(res.roomId);
+        setGameState(res.state);
+        savePlayerSession(playerName, playerToken, res.roomId);
+        setLastActiveRoom(res.roomId);
+      } else {
+        alert(res?.error || "Room is no longer active or match concluded.");
+        clearPlayerRoomSession();
+        setLastActiveRoom("");
+      }
+    });
+  };
+
+  const handleDismissRejoin = () => {
+    clearPlayerRoomSession();
+    setLastActiveRoom("");
+    if (window.location.search) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  };
+
+  const handlePlayAgain = () => {
+    handleLeaveRoom();
   };
 
   const isMyTurn = gameState?.currentPlayerId === playerId;
@@ -602,6 +646,10 @@ export default function App() {
           onCreateRoom={handleCreateRoom}
           onJoinRoom={handleJoinRoom}
           onStartGame={handleStartGame}
+          onLeaveRoom={handleLeaveRoom}
+          lastActiveRoom={lastActiveRoom}
+          onRejoinRoom={handleRejoinRoom}
+          onDismissRejoin={handleDismissRejoin}
           roomId={roomId}
           gameState={gameState}
           playerId={playerId}
@@ -637,6 +685,7 @@ export default function App() {
           onToggleSoundFX={handleToggleSoundFX}
           isHost={isHost}
           onHostEndGame={handleHostEndGame}
+          onQuitGame={handleLeaveRoom}
         />
       </>
     );
@@ -1025,6 +1074,7 @@ export default function App() {
         onToggleSoundFX={handleToggleSoundFX}
         isHost={isHost}
         onHostEndGame={handleHostEndGame}
+        onQuitGame={handleLeaveRoom}
       />
 
       {/* Drawers */}

@@ -25,6 +25,16 @@ export class RoomManager {
   }
 
   createRoom(hostData, settings = {}) {
+    // Purge any old/stale rooms previously hosted by this user that are inactive
+    this.rooms.forEach((oldEngine, oldRoomId) => {
+      const isMyRoom = oldEngine.players.some(p => p.id === hostData.id && p.isHost);
+      const activeCount = oldEngine.players.filter(p => p.isConnected).length;
+      if (isMyRoom && (!oldEngine.gameStarted || oldEngine.phase === "GAME_OVER" || activeCount <= 1)) {
+        console.log(`[Room Cleaned] Purged old host room ${oldRoomId} for host ${hostData.name}`);
+        this.rooms.delete(oldRoomId);
+      }
+    });
+
     const roomId = this.generateRoomCode();
     const engine = new MonopolyEngine(roomId, hostData, settings);
     this.rooms.set(roomId, engine);
@@ -42,12 +52,33 @@ export class RoomManager {
 
     const player = engine.addPlayer(playerData);
     if (!player) {
-      return { success: false, error: "Cannot join this room." };
+      return { success: false, error: "Cannot join this room (game in progress or full)." };
     }
 
     this.playerToRoom.set(playerData.id, cleanCode);
     this.broadcastPublicRooms();
     return { success: true, roomId: cleanCode, engine, player };
+  }
+
+  leaveRoom(roomId, playerId) {
+    const cleanCode = (roomId || "").trim().toUpperCase();
+    const engine = this.rooms.get(cleanCode);
+    if (!engine) return { success: false, error: "Room not found." };
+
+    const res = engine.quitPlayer(playerId);
+    this.playerToRoom.delete(playerId);
+
+    // If room has no active connected players, delete it immediately
+    const anyConnected = engine.players.some(p => p.isConnected);
+    if (!anyConnected || engine.players.length === 0) {
+      console.log(`[Room Deleted] Room ${cleanCode} has no connected players.`);
+      this.rooms.delete(cleanCode);
+    } else {
+      this.broadcastGameState(cleanCode);
+    }
+
+    this.broadcastPublicRooms();
+    return res;
   }
 
   getRoom(roomId) {
@@ -59,11 +90,13 @@ export class RoomManager {
     const list = [];
     this.rooms.forEach((engine, roomId) => {
       if (engine.phase === "GAME_OVER") return;
-      const host = engine.players.find(p => p.isHost) || engine.players[0];
+      const connectedPlayers = engine.players.filter(p => p.isConnected);
+      if (connectedPlayers.length === 0) return;
+      const host = engine.players.find(p => p.isHost && p.isConnected) || connectedPlayers[0];
       list.push({
         roomId,
         hostName: host ? host.name : "Host",
-        playerCount: engine.players.length,
+        playerCount: connectedPlayers.length,
         maxPlayers: 8,
         gameStarted: engine.gameStarted
       });

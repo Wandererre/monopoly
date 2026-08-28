@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Mic, MicOff, Headphones, Volume2, VolumeX, StopCircle, Settings, Music2 } from "lucide-react";
+import { X, Mic, MicOff, Headphones, Volume2, VolumeX, StopCircle, Settings, Music2, LogOut } from "lucide-react";
 
 export default function SettingsModal({
   isOpen,
@@ -15,7 +15,8 @@ export default function SettingsModal({
   isSoundMuted,
   onToggleSoundFX,
   isHost,
-  onHostEndGame
+  onHostEndGame,
+  onQuitGame
 }) {
   if (!isOpen) return null;
 
@@ -140,9 +141,24 @@ export default function SettingsModal({
             </button>
           </div>
 
-          {/* 5. Host Only: End Game */}
-          {isHost && (
-            <div className="pt-2 border-t border-slate-800">
+          {/* 5. Quit Game / Host End Game Actions */}
+          <div className="pt-2 border-t border-slate-800 space-y-2">
+            {onQuitGame && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to leave this match? You will return to the main lobby.")) {
+                    onClose();
+                    onQuitGame();
+                  }
+                }}
+                className="w-full py-2.5 px-4 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white font-black text-xs border border-zinc-700 transition flex items-center justify-center gap-2 shadow cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 text-zinc-400" />
+                <span>Leave / Quit Match</span>
+              </button>
+            )}
+
+            {isHost && onHostEndGame && (
               <button
                 onClick={() => {
                   onClose();
@@ -153,8 +169,8 @@ export default function SettingsModal({
                 <StopCircle className="w-4 h-4 text-red-400" />
                 <span>Host: End Game & Crown Winner</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

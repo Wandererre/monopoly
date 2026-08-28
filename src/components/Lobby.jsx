@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Copy, Check, Users, Play, Sparkles, AlertCircle, RefreshCw, Globe, ArrowRight, Mic, MicOff, Headphones, Settings } from "lucide-react";
+import { Copy, Check, Users, Play, Sparkles, AlertCircle, RefreshCw, Globe, ArrowRight, ArrowLeft, Mic, MicOff, Headphones, Settings, LogOut } from "lucide-react";
 import { PLAYER_TOKENS } from "../../server/data/boardData.js";
 import { sounds } from "../utils/audio.js";
 import { socket } from "../utils/socket.js";
@@ -8,6 +8,10 @@ export default function Lobby({
   onCreateRoom,
   onJoinRoom,
   onStartGame,
+  onLeaveRoom,
+  lastActiveRoom,
+  onRejoinRoom,
+  onDismissRejoin,
   roomId,
   gameState,
   playerId,
@@ -123,8 +127,19 @@ export default function Lobby({
     return (
       <div className="min-h-screen bg-[#1F2421] text-slate-100 flex items-center justify-center p-4">
         <div className="max-w-xl w-full bg-[#FAF8F5] text-slate-900 rounded-3xl border-4 border-black p-6 sm:p-8 shadow-2xl shadow-black relative">
-          {/* Header Banner */}
-          <div className="text-center mb-6">
+          {/* Header Banner with Leave Room button */}
+          <div className="relative text-center mb-6">
+            {onLeaveRoom && (
+              <button
+                type="button"
+                onClick={onLeaveRoom}
+                className="absolute left-0 top-0 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs rounded-xl border-2 border-black transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Leave this room and return to main menu"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Leave</span>
+              </button>
+            )}
             <div className="inline-block bg-[#ED1B24] text-white font-black px-6 py-2 rounded-sm border-2 border-black shadow-md transform -rotate-1 mb-2">
               <h1 className="text-3xl font-black font-['Cinzel'] tracking-wider">MONOPOLY</h1>
             </div>
@@ -328,6 +343,40 @@ export default function Lobby({
             Multiplayer Online Monopoly. Create a room or click an open room below to join!
           </p>
         </div>
+
+        {/* Reconnect Banner for Ongoing Match (If user refreshed or navigated back) */}
+        {lastActiveRoom && onRejoinRoom && (
+          <div className="bg-amber-100 border-2 border-amber-500 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <span className="text-2xl">🎲</span>
+              <div>
+                <div className="text-xs font-black text-amber-950 uppercase tracking-wide">Ongoing Match Found</div>
+                <div className="text-[11px] text-amber-900">
+                  You are registered in Room <strong className="font-mono text-xs">#{lastActiveRoom}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onRejoinRoom(lastActiveRoom)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl border-2 border-black shadow transition cursor-pointer hover:scale-105 active:scale-95 flex items-center gap-1.5"
+              >
+                <span>Rejoin Match</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+              {onDismissRejoin && (
+                <button
+                  type="button"
+                  onClick={onDismissRejoin}
+                  className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border-2 border-slate-400 transition cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Player Profile Inputs */}
         <div className="bg-white p-4 rounded-2xl border-2 border-black shadow-sm space-y-2">
