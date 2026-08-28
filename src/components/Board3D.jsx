@@ -176,29 +176,32 @@ function createTileTexture(tile, isCorner) {
 }
 
 // Generate Canvas Texture for Dice Face
+const diceTextureCache = {};
 function createDiceFaceTexture(number) {
+  if (diceTextureCache[number]) return diceTextureCache[number];
+
   const canvas = document.createElement("canvas");
   canvas.width = 128;
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
 
-  // Solid ivory face
+  // Solid ivory face with dark border
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, 128, 128);
-  ctx.strokeStyle = "#94A3B8";
-  ctx.lineWidth = 8;
-  ctx.strokeRect(4, 4, 120, 120);
+  ctx.strokeStyle = "#475569";
+  ctx.lineWidth = 10;
+  ctx.strokeRect(5, 5, 118, 118);
 
   // Black Pips
-  ctx.fillStyle = "#0F172A";
+  ctx.fillStyle = "#000000";
   const drawPip = (x, y) => {
     ctx.beginPath();
-    ctx.arc(x, y, 13, 0, Math.PI * 2);
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
     ctx.fill();
   };
 
   if (number === 1) {
-    ctx.fillStyle = "#DC2626"; // Red pip for 1
+    ctx.fillStyle = "#DC2626"; // Vibrant Red center pip for 1
     drawPip(64, 64);
   } else if (number === 2) {
     drawPip(36, 36); drawPip(92, 92);
@@ -219,20 +222,39 @@ function createDiceFaceTexture(number) {
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
+  diceTextureCache[number] = texture;
   return texture;
 }
 
-// Map dice face values to 3D Euler rotations
-function getDiceTargetRotation(value) {
-  switch (value) {
-    case 1: return { x: 0, y: 0, z: 0 };
-    case 6: return { x: Math.PI, y: 0, z: 0 };
-    case 2: return { x: -Math.PI / 2, y: 0, z: 0 };
-    case 5: return { x: Math.PI / 2, y: 0, z: 0 };
-    case 3: return { x: 0, y: 0, z: Math.PI / 2 };
-    case 4: return { x: 0, y: 0, z: -Math.PI / 2 };
-    default: return { x: 0, y: 0, z: 0 };
-  }
+// Update Die Mesh Materials so TOP FACE (Material Index 2, +Y) is 100% GUARANTEED to be topValue
+function updateDieMaterials(dieMesh, topValue) {
+  const v = Math.max(1, Math.min(6, topValue || 1));
+  const bottomValue = 7 - v;
+  const otherValues = [1, 2, 3, 4, 5, 6].filter(n => n !== v && n !== bottomValue);
+
+  // Index 0: +X (Right)
+  dieMesh.material[0].map = createDiceFaceTexture(otherValues[0]);
+  dieMesh.material[0].needsUpdate = true;
+
+  // Index 1: -X (Left)
+  dieMesh.material[1].map = createDiceFaceTexture(otherValues[1]);
+  dieMesh.material[1].needsUpdate = true;
+
+  // Index 2: +Y (TOP FACE - LOOKING DIRECTLY AT USER)
+  dieMesh.material[2].map = createDiceFaceTexture(v);
+  dieMesh.material[2].needsUpdate = true;
+
+  // Index 3: -Y (Bottom)
+  dieMesh.material[3].map = createDiceFaceTexture(bottomValue);
+  dieMesh.material[3].needsUpdate = true;
+
+  // Index 4: +Z (Front)
+  dieMesh.material[4].map = createDiceFaceTexture(otherValues[2]);
+  dieMesh.material[4].needsUpdate = true;
+
+  // Index 5: -Z (Back)
+  dieMesh.material[5].map = createDiceFaceTexture(otherValues[3]);
+  dieMesh.material[5].needsUpdate = true;
 }
 
 export default function Board3D({
@@ -263,12 +285,13 @@ export default function Board3D({
   // Scene object refs
   const sceneRef = useRef(null);
   const diceMeshesRef = useRef([]);
+  const diceHudRef = useRef(null);
   const tokenMeshesRef = useRef({});
   const houseMeshesRef = useRef({});
   const ownerMeshesRef = useRef({});
   const prevPositionsRef = useRef({});
 
-  // Camera & Tracking Controller (Pure Free Orbit when not tracking)
+  // Camera & Tracking Controller
   const cameraStateRef = useRef({
     defaultPos: new THREE.Vector3(18, 22, 18),
     defaultTarget: new THREE.Vector3(0, 0, 0),
@@ -280,7 +303,7 @@ export default function Board3D({
   const animationStateRef = useRef({
     diceRolling: false,
     diceStart: 0,
-    diceDuration: 1400,
+    diceDuration: 1300,
     diceTargets: [1, 1],
     hoppingTokens: {}
   });
@@ -318,17 +341,16 @@ export default function Board3D({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
-    // Free Orbit Controls with damping (NO fighting lerp!)
     const controls = new OrbitControls(camera, renderer.domElement);
     controlsRef.current = controls;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.maxPolarAngle = Math.PI / 2.15; // Prevent under-board
+    controls.maxPolarAngle = Math.PI / 2.15;
     controls.minDistance = 8;
     controls.maxDistance = 50;
     controls.target.copy(cameraStateRef.current.defaultTarget);
 
-    // Lighting
+    // Warm, Rich Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
@@ -486,28 +508,35 @@ export default function Board3D({
     });
     scene.add(tileGroup);
 
-    // 5. Build 3D Tumbling Dice Pair
-    const diceMaterials = [
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(2), roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(5), roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(3), roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(4), roughness: 0.5 })
-    ];
-    const diceGeo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+    // 5. Build 3D Tumbling Dice Pair with individual face materials
+    const createDieMesh = () => {
+      const mats = [
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }), // TOP FACE
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(3), roughness: 0.4 }),
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(4), roughness: 0.4 })
+      ];
+      const geo = new THREE.BoxGeometry(0.9, 0.9, 0.9);
+      const mesh = new THREE.Mesh(geo, mats);
+      mesh.castShadow = true;
+      return mesh;
+    };
 
-    const die1 = new THREE.Mesh(diceGeo, diceMaterials);
+    const die1 = createDieMesh();
     die1.position.set(-0.8, 0.86, 0);
-    die1.castShadow = true;
     scene.add(die1);
 
-    const die2 = new THREE.Mesh(diceGeo, diceMaterials);
+    const die2 = createDieMesh();
     die2.position.set(0.8, 0.86, 0);
-    die2.castShadow = true;
     scene.add(die2);
 
     diceMeshesRef.current = [die1, die2];
+
+    // Initial update of dice faces
+    updateDieMaterials(die1, (dice && dice[0]) || 1);
+    updateDieMaterials(die2, (dice && dice[1]) || 1);
 
     // 6. Raycaster for Tile Clicks & Card Decks
     const raycaster = new THREE.Raycaster();
@@ -561,8 +590,7 @@ export default function Board3D({
         const progress = Math.min(1, (now - anim.diceStart) / anim.diceDuration);
 
         diceMeshesRef.current.forEach((die, idx) => {
-          const targetRot = getDiceTargetRotation(anim.diceTargets[idx] || 1);
-          const spinMultiplier = (1 - progress) * 10 * Math.PI;
+          const spinMultiplier = (1 - progress) * 12 * Math.PI;
 
           // Parabolic Drop Arc
           const bounceHeight = Math.sin(progress * Math.PI) * 2.8 * (1 - progress * 0.7);
@@ -570,14 +598,25 @@ export default function Board3D({
           die.position.x = (idx === 0 ? -1.1 : 1.1) + Math.sin(progress * Math.PI * 2) * 0.4;
           die.position.z = Math.cos(progress * Math.PI * 2) * 0.3;
 
-          die.rotation.x = targetRot.x + spinMultiplier;
-          die.rotation.y = targetRot.y + spinMultiplier * 0.7;
-          die.rotation.z = targetRot.z + spinMultiplier * 1.2;
+          die.rotation.x = spinMultiplier;
+          die.rotation.y = spinMultiplier * 0.7;
+          die.rotation.z = spinMultiplier * 1.2;
         });
 
         if (progress >= 1) {
           anim.diceRolling = false;
           setIsRolling(false);
+          // Set top face directly to the exact target dice value
+          if (diceMeshesRef.current[0]) {
+            updateDieMaterials(diceMeshesRef.current[0], anim.diceTargets[0]);
+            diceMeshesRef.current[0].rotation.set(0, 0.1, 0);
+            diceMeshesRef.current[0].position.set(-0.8, 0.86, 0);
+          }
+          if (diceMeshesRef.current[1]) {
+            updateDieMaterials(diceMeshesRef.current[1], anim.diceTargets[1]);
+            diceMeshesRef.current[1].rotation.set(0, -0.15, 0);
+            diceMeshesRef.current[1].position.set(0.8, 0.86, 0);
+          }
         }
       }
 
@@ -591,12 +630,10 @@ export default function Board3D({
         const fromPos = getTile3DPosition(hop.fromPos);
         const toPos = getTile3DPosition(hop.toPos);
 
-        // Smooth (x, z) interpolation + authentic 3D parabolic hop arc (y)
         tokenMesh.position.x = THREE.MathUtils.lerp(fromPos.x, toPos.x, p);
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
-        // Dynamic close-up camera follows the hopping token
         camState.trackTargetPos.copy(tokenMesh.position);
         camState.trackCameraPos.set(tokenMesh.position.x + 6, 8.5, tokenMesh.position.z + 6);
 
@@ -649,11 +686,9 @@ export default function Board3D({
       let tokenMesh = tokenMeshesRef.current[p.id];
       const tokData = PLAYER_TOKENS.find((t) => t.id === p.token) || PLAYER_TOKENS[0];
 
-      // Create Token Mesh if doesn't exist
       if (!tokenMesh) {
         const group = new THREE.Group();
 
-        // Stylized 3D Pawn Geometry (Pedestal + Cone + Sphere)
         const baseGeo = new THREE.CylinderGeometry(0.38, 0.48, 0.35, 24);
         const baseMat = new THREE.MeshStandardMaterial({
           color: p.color || tokData.color || "#3B82F6",
@@ -677,7 +712,6 @@ export default function Board3D({
         head.castShadow = true;
         group.add(head);
 
-        // Emoji Sprite Floating Billboard
         const canvas = document.createElement("canvas");
         canvas.width = 128;
         canvas.height = 128;
@@ -701,7 +735,6 @@ export default function Board3D({
         prevPositionsRef.current[p.id] = p.position || 0;
       }
 
-      // Check for position change and start step-by-step 3D hop with Camera Follow
       const currentPos = prevPositionsRef.current[p.id] !== undefined ? prevPositionsRef.current[p.id] : p.position;
       const targetPos = p.position;
 
@@ -715,7 +748,6 @@ export default function Board3D({
           steps.push(cur);
         }
 
-        // Teleport (e.g. Go to Jail)
         if (steps.length > 12 || (currentPos === 30 && targetPos === 10)) {
           sounds.playJail();
           const dest = getTile3DPosition(targetPos);
@@ -724,10 +756,8 @@ export default function Board3D({
           return;
         }
 
-        // Enable Dynamic Close-Up Camera Tracking
         cameraStateRef.current.isTracking = true;
 
-        // Slowed down step-by-step 3D hop at 320ms per step
         let stepIdx = 0;
         let prevStep = currentPos;
 
@@ -747,7 +777,6 @@ export default function Board3D({
             stepIdx++;
           } else {
             clearInterval(interval);
-            // Return camera control to user after piece lands
             setTimeout(() => {
               cameraStateRef.current.isTracking = false;
             }, 600);
@@ -763,7 +792,6 @@ export default function Board3D({
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
-    // Clean old house and owner meshes
     Object.values(houseMeshesRef.current).forEach((m) => scene.remove(m));
     houseMeshesRef.current = {};
 
@@ -790,7 +818,6 @@ export default function Board3D({
           metalness: 0.2
         });
 
-        // Elevated owner border marker on the inner edge of the tile
         const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.45), ownerMat);
         ownerStrip.position.set(tilePos.x, 0.48, tilePos.z);
 
@@ -810,14 +837,12 @@ export default function Board3D({
         const group = new THREE.Group();
 
         if (isHotel) {
-          // Red Hotel 3D Mesh
           const hotelMat = new THREE.MeshStandardMaterial({ color: "#DC2626", roughness: 0.3 });
           const hotel = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 0.45), hotelMat);
           hotel.position.set(0, 0.22, 0);
           hotel.castShadow = true;
           group.add(hotel);
         } else {
-          // Green House 3D Meshes (1-4)
           const houseMat = new THREE.MeshStandardMaterial({ color: "#16A34A", roughness: 0.3 });
           for (let i = 0; i < prop.houses; i++) {
             const house = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.24), houseMat);
@@ -843,11 +868,10 @@ export default function Board3D({
       ...animationStateRef.current,
       diceRolling: true,
       diceStart: performance.now(),
-      diceDuration: 1400,
+      diceDuration: 1300,
       diceTargets: dice || [1, 1]
     };
 
-    // Immediately trigger server roll so server dice updates synchronously
     onRollDice();
   };
 
@@ -855,12 +879,17 @@ export default function Board3D({
   useEffect(() => {
     if (dice && dice.length === 2) {
       animationStateRef.current.diceTargets = dice;
-      if (!animationStateRef.current.diceRolling) {
-        diceMeshesRef.current.forEach((die, idx) => {
-          const rot = getDiceTargetRotation(dice[idx] || 1);
-          die.rotation.set(rot.x, rot.y, rot.z);
-          die.position.y = 0.86;
-        });
+      if (!animationStateRef.current.diceRolling && diceMeshesRef.current.length === 2) {
+        if (diceMeshesRef.current[0]) {
+          updateDieMaterials(diceMeshesRef.current[0], dice[0]);
+          diceMeshesRef.current[0].rotation.set(0, 0.1, 0);
+          diceMeshesRef.current[0].position.set(-0.8, 0.86, 0);
+        }
+        if (diceMeshesRef.current[1]) {
+          updateDieMaterials(diceMeshesRef.current[1], dice[1]);
+          diceMeshesRef.current[1].rotation.set(0, -0.15, 0);
+          diceMeshesRef.current[1].position.set(0.8, 0.86, 0);
+        }
       }
     }
   }, [dice]);
@@ -894,10 +923,10 @@ export default function Board3D({
               </span>
             </div>
 
-            {/* Turn Timer */}
+            {/* Turn Timer: Shows 30s Roll / 40s Action */}
             {gameState.turnTimeRemaining !== undefined && (
               <div className="font-mono text-xs px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-amber-400">
-                ⏳ {gameState.turnTimeRemaining}s
+                ⏳ {gameState.turnTimeRemaining}s {phase === "ROLL" ? "(Roll)" : "(Action)"}
               </div>
             )}
           </div>
@@ -911,7 +940,7 @@ export default function Board3D({
                 className="w-full py-3 bg-[#ED1B24] hover:bg-red-700 text-white font-black text-sm rounded-xl border-2 border-black shadow-lg transition flex items-center justify-center gap-2 cursor-pointer hover:scale-105 active:scale-95"
               >
                 <Dices className="w-4 h-4" />
-                <span>{isRolling ? "Rolling 3D Dice..." : "Roll Dice"}</span>
+                <span>{isRolling ? "Rolling 3D Dice..." : "Roll Dice (30s)"}</span>
               </button>
             )}
 

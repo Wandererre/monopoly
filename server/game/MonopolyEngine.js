@@ -5,7 +5,8 @@ export class MonopolyEngine {
     this.roomId = roomId;
     this.settings = {
       startingCash: settings.startingCash || 1500,
-      turnTimerSeconds: settings.turnTimerSeconds || 15,
+      rollTimerSeconds: settings.rollTimerSeconds || 30,
+      turnTimerSeconds: settings.turnTimerSeconds || 40,
       maxHousesPerProperty: 5 // 5 = Hotel
     };
 
@@ -36,7 +37,7 @@ export class MonopolyEngine {
     this.communityDeck = this.shuffle([...COMMUNITY_CARDS]);
     this.logs = [];
 
-    this.turnTimeRemaining = this.settings.turnTimerSeconds;
+    this.turnTimeRemaining = this.settings.rollTimerSeconds;
   }
 
   initPlayer(playerData, isHost = false) {
@@ -194,7 +195,7 @@ export class MonopolyEngine {
     this.phase = "ROLL";
     this.currentTurnIndex = 0;
     this.doublesCount = 0;
-    this.turnTimeRemaining = this.settings.turnTimerSeconds;
+    this.turnTimeRemaining = this.settings.rollTimerSeconds || 30;
     this.addLog(`Game started! ${this.getCurrentPlayer().name}'s turn.`, "info");
     return { success: true };
   }
@@ -212,6 +213,9 @@ export class MonopolyEngine {
     if (!player || player.id !== playerId) return { success: false, error: "Not your turn." };
     if (player.money < 0) return { success: false, error: "Must resolve debt before rolling." };
     if (this.phase !== "ROLL") return { success: false, error: "Cannot roll right now." };
+
+    // Reset action timer to 40 seconds after rolling
+    this.turnTimeRemaining = this.settings.turnTimerSeconds || 40;
 
     const die1 = Math.floor(Math.random() * 6) + 1;
     const die2 = Math.floor(Math.random() * 6) + 1;
@@ -774,7 +778,7 @@ export class MonopolyEngine {
     if (!force && this.doublesCount > 0 && !player.inJail && !player.bankrupt) {
       this.phase = "ROLL";
       this.pendingAction = null;
-      this.turnTimeRemaining = this.settings.turnTimerSeconds;
+      this.turnTimeRemaining = this.settings.rollTimerSeconds || 30;
       this.addLog(`${player.name} rolled doubles and gets another turn!`, "dice");
       return { success: true, extraTurn: true };
     }
@@ -794,7 +798,7 @@ export class MonopolyEngine {
     this.doublesCount = 0;
     this.phase = "ROLL";
     this.pendingAction = null;
-    this.turnTimeRemaining = this.settings.turnTimerSeconds;
+    this.turnTimeRemaining = this.settings.rollTimerSeconds || 30;
 
     const nextPlayer = this.getCurrentPlayer();
     this.addLog(`It is now ${nextPlayer.name}'s turn.`, "info");
