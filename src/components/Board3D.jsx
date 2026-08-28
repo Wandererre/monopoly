@@ -47,7 +47,7 @@ function createTileTexture(tile, isCorner) {
   canvas.height = 512;
   const ctx = canvas.getContext("2d");
 
-  // Rich cream paper background with high contrast
+  // Rich cream paper background
   ctx.fillStyle = "#FFFDF9";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -59,14 +59,12 @@ function createTileTexture(tile, isCorner) {
   const groupInfo = tile.group ? COLOR_GROUPS[tile.group] : null;
 
   if (tile.type === "property" && groupInfo) {
-    // Rich saturated color bar
     ctx.fillStyle = groupInfo.color;
     ctx.fillRect(5, 5, canvas.width - 10, 130);
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 8;
     ctx.strokeRect(5, 5, canvas.width - 10, 130);
 
-    // City Name in high-contrast bold font
     ctx.fillStyle = "#000000";
     ctx.font = "900 28px sans-serif";
     ctx.textAlign = "center";
@@ -78,7 +76,6 @@ function createTileTexture(tile, isCorner) {
       ctx.fillText(words.slice(1).join(" "), canvas.width / 2, 245);
     }
 
-    // Price tag
     ctx.font = "900 32px monospace";
     ctx.fillStyle = "#0F172A";
     ctx.fillText("M" + tile.price, canvas.width / 2, 450);
@@ -105,14 +102,14 @@ function createTileTexture(tile, isCorner) {
     ctx.font = "900 32px monospace";
     ctx.fillText("M" + tile.price, canvas.width / 2, 450);
   } else if (tile.type === "chance") {
-    ctx.fillStyle = "#EA580C"; // Vibrant rich orange
+    ctx.fillStyle = "#EA580C";
     ctx.font = "900 34px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("CHANCE", canvas.width / 2, 100);
     ctx.font = "110px sans-serif";
     ctx.fillText("❓", canvas.width / 2, 290);
   } else if (tile.type === "community_chest") {
-    ctx.fillStyle = "#1E40AF"; // Deep royal blue
+    ctx.fillStyle = "#1E40AF";
     ctx.font = "900 30px sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("COMMUNITY", canvas.width / 2, 85);
@@ -129,7 +126,6 @@ function createTileTexture(tile, isCorner) {
     ctx.font = "900 30px monospace";
     ctx.fillText("PAY M" + tile.amount, canvas.width / 2, 435);
   } else if (tile.id === 0) {
-    // GO
     ctx.fillStyle = "#DC2626";
     ctx.font = "900 96px sans-serif";
     ctx.textAlign = "center";
@@ -141,7 +137,6 @@ function createTileTexture(tile, isCorner) {
     ctx.font = "70px sans-serif";
     ctx.fillText("⬅️", canvas.width / 2, 450);
   } else if (tile.id === 10) {
-    // JAIL
     ctx.fillStyle = "#EA580C";
     ctx.font = "900 64px sans-serif";
     ctx.textAlign = "center";
@@ -150,7 +145,6 @@ function createTileTexture(tile, isCorner) {
     ctx.fillStyle = "#1E293B";
     ctx.fillText("JUST VISITING", canvas.width / 2, 390);
   } else if (tile.id === 20) {
-    // FREE PARKING
     ctx.fillStyle = "#DC2626";
     ctx.font = "900 54px sans-serif";
     ctx.textAlign = "center";
@@ -159,7 +153,6 @@ function createTileTexture(tile, isCorner) {
     ctx.font = "80px sans-serif";
     ctx.fillText("🚗", canvas.width / 2, 370);
   } else if (tile.id === 30) {
-    // GO TO JAIL
     ctx.fillStyle = "#000000";
     ctx.font = "900 48px sans-serif";
     ctx.textAlign = "center";
@@ -185,14 +178,12 @@ function createDiceFaceTexture(number) {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
 
-  // Solid ivory face with dark border
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, 128, 128);
   ctx.strokeStyle = "#475569";
   ctx.lineWidth = 10;
   ctx.strokeRect(5, 5, 118, 118);
 
-  // Black Pips
   ctx.fillStyle = "#000000";
   const drawPip = (x, y) => {
     ctx.beginPath();
@@ -201,7 +192,7 @@ function createDiceFaceTexture(number) {
   };
 
   if (number === 1) {
-    ctx.fillStyle = "#DC2626"; // Vibrant Red center pip for 1
+    ctx.fillStyle = "#DC2626";
     drawPip(64, 64);
   } else if (number === 2) {
     drawPip(36, 36); drawPip(92, 92);
@@ -226,33 +217,28 @@ function createDiceFaceTexture(number) {
   return texture;
 }
 
-// Update Die Mesh Materials so TOP FACE (Material Index 2, +Y) is 100% GUARANTEED to be topValue
+// Update Die Mesh Materials so TOP FACE (+Y, index 2) matches topValue
 function updateDieMaterials(dieMesh, topValue) {
   const v = Math.max(1, Math.min(6, topValue || 1));
   const bottomValue = 7 - v;
   const otherValues = [1, 2, 3, 4, 5, 6].filter(n => n !== v && n !== bottomValue);
 
-  // Index 0: +X (Right)
   dieMesh.material[0].map = createDiceFaceTexture(otherValues[0]);
   dieMesh.material[0].needsUpdate = true;
 
-  // Index 1: -X (Left)
   dieMesh.material[1].map = createDiceFaceTexture(otherValues[1]);
   dieMesh.material[1].needsUpdate = true;
 
-  // Index 2: +Y (TOP FACE - LOOKING DIRECTLY AT USER)
+  // Material index 2 is +Y (TOP FACE)
   dieMesh.material[2].map = createDiceFaceTexture(v);
   dieMesh.material[2].needsUpdate = true;
 
-  // Index 3: -Y (Bottom)
   dieMesh.material[3].map = createDiceFaceTexture(bottomValue);
   dieMesh.material[3].needsUpdate = true;
 
-  // Index 4: +Z (Front)
   dieMesh.material[4].map = createDiceFaceTexture(otherValues[2]);
   dieMesh.material[4].needsUpdate = true;
 
-  // Index 5: -Z (Back)
   dieMesh.material[5].map = createDiceFaceTexture(otherValues[3]);
   dieMesh.material[5].needsUpdate = true;
 }
@@ -285,39 +271,34 @@ export default function Board3D({
   // Scene object refs
   const sceneRef = useRef(null);
   const diceMeshesRef = useRef([]);
-  const diceHudRef = useRef(null);
   const tokenMeshesRef = useRef({});
   const houseMeshesRef = useRef({});
   const ownerMeshesRef = useRef({});
   const prevPositionsRef = useRef({});
+  const pendingHopQueueRef = useRef([]);
 
-  // Camera & Tracking Controller
-  const cameraStateRef = useRef({
-    defaultPos: new THREE.Vector3(18, 22, 18),
-    defaultTarget: new THREE.Vector3(0, 0, 0),
-    isTracking: false,
-    trackTargetPos: new THREE.Vector3(0, 0, 0),
-    trackCameraPos: new THREE.Vector3(18, 22, 18)
-  });
+  // Fixed Board-Centered Camera Position
+  const defaultCamPos = useRef(new THREE.Vector3(18, 22, 18));
+  const boardCenterTarget = useRef(new THREE.Vector3(0, 0, 0));
 
   const animationStateRef = useRef({
     diceRolling: false,
     diceStart: 0,
-    diceDuration: 1300,
+    diceDuration: 1100,
     diceTargets: [1, 1],
     hoppingTokens: {}
   });
 
+  // Snap / Reset camera smoothly to default board-centered overview
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
-      cameraStateRef.current.isTracking = false;
-      cameraRef.current.position.copy(cameraStateRef.current.defaultPos);
-      controlsRef.current.target.copy(cameraStateRef.current.defaultTarget);
+      cameraRef.current.position.copy(defaultCamPos.current);
+      controlsRef.current.target.copy(boardCenterTarget.current);
       controlsRef.current.update();
     }
   };
 
-  // 1. Initialize Three.js WebGL Scene
+  // 1. Initialize Three.js WebGL Scene (Always Board-Centered!)
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -329,8 +310,9 @@ export default function Board3D({
     sceneRef.current = scene;
     scene.background = new THREE.Color("#111512");
 
+    // Board-centered Isometric Camera
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-    camera.position.copy(cameraStateRef.current.defaultPos);
+    camera.position.copy(defaultCamPos.current);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -341,16 +323,17 @@ export default function Board3D({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
+    // Free Orbit Controls anchored strictly at the board center [0, 0, 0]
     const controls = new OrbitControls(camera, renderer.domElement);
     controlsRef.current = controls;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.maxPolarAngle = Math.PI / 2.15;
+    controls.maxPolarAngle = Math.PI / 2.15; // Prevent viewing underneath the table
     controls.minDistance = 8;
     controls.maxDistance = 50;
-    controls.target.copy(cameraStateRef.current.defaultTarget);
+    controls.target.copy(boardCenterTarget.current); // Fixed center!
 
-    // Warm, Rich Lighting
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
@@ -366,7 +349,7 @@ export default function Board3D({
     fillLight.position.set(-15, 15, -15);
     scene.add(fillLight);
 
-    // 2. Build 3D Board Base (Mahogany Slab + Center Felt)
+    // 2. Build 3D Board Base (Mahogany Slab + Deep Casino Green Center Felt)
     const baseGeo = new THREE.BoxGeometry(BOARD_SIZE + 0.6, 0.7, BOARD_SIZE + 0.6);
     const baseMat = new THREE.MeshStandardMaterial({
       color: "#181412",
@@ -378,7 +361,7 @@ export default function Board3D({
     baseMesh.receiveShadow = true;
     scene.add(baseMesh);
 
-    // Center Felt Mat (Deep Forest Green)
+    // Center Felt Mat
     const feltSize = BOARD_SIZE - 2 * CORNER_SIZE;
     const feltGeo = new THREE.PlaneGeometry(feltSize, feltSize);
     const feltMat = new THREE.MeshStandardMaterial({
@@ -508,7 +491,7 @@ export default function Board3D({
     });
     scene.add(tileGroup);
 
-    // 5. Build 3D Tumbling Dice Pair with individual face materials
+    // 5. Build 3D Tumbling Dice Pair
     const createDieMesh = () => {
       const mats = [
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }),
@@ -534,7 +517,6 @@ export default function Board3D({
 
     diceMeshesRef.current = [die1, die2];
 
-    // Initial update of dice faces
     updateDieMaterials(die1, (dice && dice[0]) || 1);
     updateDieMaterials(die2, (dice && dice[1]) || 1);
 
@@ -549,7 +531,6 @@ export default function Board3D({
 
       raycaster.setFromCamera(mouse, camera);
 
-      // Check card decks click
       const cardIntersects = raycaster.intersectObjects(cardGroup.children);
       if (cardIntersects.length > 0) {
         const cardType = cardIntersects[0].object.userData?.cardType;
@@ -559,7 +540,6 @@ export default function Board3D({
         }
       }
 
-      // Check tile click
       const tileIntersects = raycaster.intersectObjects(tileGroup.children);
       if (tileIntersects.length > 0) {
         const clickedTileId = tileIntersects[0].object.userData?.tileId;
@@ -583,7 +563,6 @@ export default function Board3D({
       reqId = requestAnimationFrame(animate);
       const now = performance.now();
       const anim = animationStateRef.current;
-      const camState = cameraStateRef.current;
 
       // Tumbling Dice Animation
       if (anim.diceRolling && diceMeshesRef.current.length === 2) {
@@ -603,10 +582,11 @@ export default function Board3D({
           die.rotation.z = spinMultiplier * 1.2;
         });
 
+        // When dice tumbling completes: SETTLE DICE FIRST!
         if (progress >= 1) {
           anim.diceRolling = false;
           setIsRolling(false);
-          // Set top face directly to the exact target dice value
+
           if (diceMeshesRef.current[0]) {
             updateDieMaterials(diceMeshesRef.current[0], anim.diceTargets[0]);
             diceMeshesRef.current[0].rotation.set(0, 0.1, 0);
@@ -616,6 +596,12 @@ export default function Board3D({
             updateDieMaterials(diceMeshesRef.current[1], anim.diceTargets[1]);
             diceMeshesRef.current[1].rotation.set(0, -0.15, 0);
             diceMeshesRef.current[1].position.set(0.8, 0.86, 0);
+          }
+
+          // Trigger any queued token movements now that dice have settled!
+          if (pendingHopQueueRef.current.length > 0) {
+            const nextHop = pendingHopQueueRef.current.shift();
+            if (nextHop) nextHop();
           }
         }
       }
@@ -634,21 +620,12 @@ export default function Board3D({
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
-        camState.trackTargetPos.copy(tokenMesh.position);
-        camState.trackCameraPos.set(tokenMesh.position.x + 6, 8.5, tokenMesh.position.z + 6);
-
         if (p >= 1) {
           tokenMesh.position.copy(toPos);
           tokenMesh.position.y = 0.5;
           delete anim.hoppingTokens[pid];
         }
       });
-
-      // ONLY lerp camera if currently tracking a hopping piece
-      if (camState.isTracking) {
-        camera.position.lerp(camState.trackCameraPos, 0.08);
-        controls.target.lerp(camState.trackTargetPos, 0.08);
-      }
 
       controls.update();
       renderer.render(scene, camera);
@@ -677,7 +654,7 @@ export default function Board3D({
     };
   }, []);
 
-  // 2. Synchronize 3D Player Tokens & Step-by-Step Hopping
+  // 2. Synchronize 3D Player Tokens & Start Hop ONLY AFTER Dice Settle!
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -739,50 +716,54 @@ export default function Board3D({
       const targetPos = p.position;
 
       if (currentPos !== targetPos) {
-        prevPositionsRef.current[p.id] = targetPos;
+        const startHoppingSequence = () => {
+          prevPositionsRef.current[p.id] = targetPos;
 
-        let steps = [];
-        let cur = currentPos;
-        while (cur !== targetPos) {
-          cur = (cur + 1) % 40;
-          steps.push(cur);
-        }
-
-        if (steps.length > 12 || (currentPos === 30 && targetPos === 10)) {
-          sounds.playJail();
-          const dest = getTile3DPosition(targetPos);
-          tokenMesh.position.set(dest.x, 0.5, dest.z);
-          if (onMovementComplete) onMovementComplete();
-          return;
-        }
-
-        cameraStateRef.current.isTracking = true;
-
-        let stepIdx = 0;
-        let prevStep = currentPos;
-
-        const interval = setInterval(() => {
-          if (stepIdx < steps.length) {
-            const nextStep = steps[stepIdx];
-            sounds.playTokenStep();
-
-            animationStateRef.current.hoppingTokens[p.id] = {
-              fromPos: prevStep,
-              toPos: nextStep,
-              startTime: performance.now(),
-              duration: 300
-            };
-
-            prevStep = nextStep;
-            stepIdx++;
-          } else {
-            clearInterval(interval);
-            setTimeout(() => {
-              cameraStateRef.current.isTracking = false;
-            }, 600);
-            if (onMovementComplete) onMovementComplete();
+          let steps = [];
+          let cur = currentPos;
+          while (cur !== targetPos) {
+            cur = (cur + 1) % 40;
+            steps.push(cur);
           }
-        }, 320);
+
+          if (steps.length > 12 || (currentPos === 30 && targetPos === 10)) {
+            sounds.playJail();
+            const dest = getTile3DPosition(targetPos);
+            tokenMesh.position.set(dest.x, 0.5, dest.z);
+            if (onMovementComplete) onMovementComplete();
+            return;
+          }
+
+          let stepIdx = 0;
+          let prevStep = currentPos;
+
+          const interval = setInterval(() => {
+            if (stepIdx < steps.length) {
+              const nextStep = steps[stepIdx];
+              sounds.playTokenStep();
+
+              animationStateRef.current.hoppingTokens[p.id] = {
+                fromPos: prevStep,
+                toPos: nextStep,
+                startTime: performance.now(),
+                duration: 280
+              };
+
+              prevStep = nextStep;
+              stepIdx++;
+            } else {
+              clearInterval(interval);
+              if (onMovementComplete) onMovementComplete();
+            }
+          }, 300);
+        };
+
+        // If dice are currently rolling in the air, QUEUE the hop until the dice settle!
+        if (animationStateRef.current.diceRolling) {
+          pendingHopQueueRef.current.push(startHoppingSequence);
+        } else {
+          startHoppingSequence();
+        }
       }
     });
   }, [players]);
@@ -807,7 +788,6 @@ export default function Board3D({
       const isCorner = [0, 10, 20, 30].includes(tileId);
       const w = isCorner ? CORNER_SIZE : TILE_WIDTH;
 
-      // Render 3D Color-Coded Ownership Strip if owned
       if (prop.owner) {
         const ownerPlayer = players.find((p) => p.id === prop.owner);
         const ownerColor = ownerPlayer?.color || "#F59E0B";
@@ -831,7 +811,6 @@ export default function Board3D({
         ownerMeshesRef.current[tileId] = ownerStrip;
       }
 
-      // Render 3D Houses / Hotels
       if (prop.houses > 0) {
         const isHotel = prop.houses >= 5;
         const group = new THREE.Group();
@@ -859,7 +838,7 @@ export default function Board3D({
     });
   }, [properties, players]);
 
-  // 4. Trigger Instant 3D Tumbling Dice Roll Synchronized with Server Dice
+  // 4. Trigger Instant 3D Tumbling Dice Roll
   const handleRollClick = () => {
     sounds.playDiceRoll();
     setIsRolling(true);
@@ -868,7 +847,7 @@ export default function Board3D({
       ...animationStateRef.current,
       diceRolling: true,
       diceStart: performance.now(),
-      diceDuration: 1300,
+      diceDuration: 1100,
       diceTargets: dice || [1, 1]
     };
 
