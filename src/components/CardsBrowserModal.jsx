@@ -68,22 +68,22 @@ export default function CardsBrowserModal({ isOpen, initialTab = "chance", onClo
         </div>
 
         {/* Cards Grid */}
-        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-slate-900/50">
+        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 bg-slate-900/60">
           {cards.map((card, idx) => {
             const isChance = activeTab === "chance";
             return (
               <div
                 key={card.id || idx}
-                className={`p-4 rounded-2xl border-2 flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xl relative overflow-hidden ${
+                className={`p-5 rounded-2xl border-2 flex flex-col justify-between transition-all hover:scale-[1.02] shadow-xl relative min-h-[185px] ${
                   isChance
-                    ? "bg-[#FAF8F5] text-slate-900 border-orange-500/60 hover:border-orange-500"
-                    : "bg-[#FAF8F5] text-slate-900 border-blue-500/60 hover:border-blue-500"
+                    ? "bg-white text-slate-900 border-orange-500/70 hover:border-orange-500"
+                    : "bg-white text-slate-900 border-blue-500/70 hover:border-blue-500"
                 }`}
               >
                 {/* Top Badge */}
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2.5">
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                    className={`px-3 py-1 rounded-full text-[11px] font-black tracking-wider uppercase ${
                       isChance ? "bg-orange-600 text-white" : "bg-blue-600 text-white"
                     }`}
                   >
@@ -93,28 +93,28 @@ export default function CardsBrowserModal({ isOpen, initialTab = "chance", onClo
                 </div>
 
                 {/* Card Content */}
-                <div className="space-y-1.5 my-2">
-                  <h4 className="text-sm font-black text-slate-950 leading-snug">
+                <div className="my-2 flex-1">
+                  <h4 className="text-sm sm:text-base font-black text-slate-950 leading-snug mb-1.5">
                     {card.title}
                   </h4>
-                  <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                  <p className="text-xs font-semibold text-slate-700 leading-relaxed">
                     {card.description}
                   </p>
                 </div>
 
                 {/* Card Action / Value Badge */}
-                <div className="pt-2 mt-2 border-t border-slate-200 flex items-center justify-between text-[11px] font-mono font-black">
+                <div className="pt-2.5 mt-2 border-t border-slate-200 flex items-center justify-between text-xs font-mono font-bold">
                   <span className="text-slate-500 capitalize">{card.action.replace(/_/g, " ")}</span>
                   {card.amount && (
-                    <span className={card.action === "pay_money" || card.action === "pay_to_all" ? "text-red-600" : "text-emerald-700"}>
+                    <span className={card.action === "pay_money" || card.action === "pay_to_all" ? "text-red-600 font-black" : "text-emerald-600 font-black"}>
                       {card.action === "pay_money" || card.action === "pay_to_all" ? `-M${card.amount}` : `+M${card.amount}`}
                     </span>
                   )}
                   {card.action === "get_out_of_jail_card" && (
-                    <span className="text-indigo-600">Free Pass</span>
+                    <span className="text-indigo-600 font-black">Free Pass</span>
                   )}
                   {card.action === "advance_tile" && (
-                    <span className="text-blue-600">Advance</span>
+                    <span className="text-blue-600 font-black">Advance</span>
                   )}
                 </div>
               </div>
@@ -123,9 +123,9 @@ export default function CardsBrowserModal({ isOpen, initialTab = "chance", onClo
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-950 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
           <span>Click outside or close to return to the board</span>
-          <span className="font-mono">{cards.length} Total Cards</span>
+          <span className="font-mono font-bold text-slate-300">{cards.length} Total Cards</span>
         </div>
       </div>
     </div>

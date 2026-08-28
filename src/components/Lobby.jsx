@@ -85,7 +85,8 @@ export default function Lobby({
     const randToken = PLAYER_TOKENS[Math.floor(Math.random() * PLAYER_TOKENS.length)];
     onCreateRoom(finalName, randToken.id, randToken.color, {
       startingCash: Number(startingCash) || 1500,
-      turnTimerSeconds: 15
+      rollTimerSeconds: 30,
+      turnTimerSeconds: 40
     });
   };
 

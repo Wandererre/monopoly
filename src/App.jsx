@@ -336,7 +336,7 @@ export default function App() {
 
     const payload = {
       hostData: { id: playerId, name, token, color },
-      settings: settings || { startingCash: 1500, turnTimerSeconds: 15 }
+      settings: settings || { startingCash: 1500, rollTimerSeconds: 30, turnTimerSeconds: 40 }
     };
 
     let handled = false;
