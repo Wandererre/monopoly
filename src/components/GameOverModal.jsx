@@ -38,10 +38,11 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
   const totalJailEvents = logs.filter(l => l.type === "jail").length;
 
   useEffect(() => {
-    // Play authentic 1977 Star Wars soundtrack
+    // Play authentic 1977 Star Wars soundtrack starting at 00:27 (fanfare blast)
     try {
       const audio = new Audio("/sounds/star-wars-theme.mp4");
-      audio.volume = 0.60;
+      audio.currentTime = 27.0;
+      audio.volume = 0.70;
       audio.play().catch(() => {});
       audioRef.current = audio;
     } catch (e) {
@@ -49,12 +50,12 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
     }
 
     // Celebratory victory confetti
-    confetti({ particleCount: 40, spread: 65, origin: { y: 0.8 } });
+    confetti({ particleCount: 45, spread: 70, origin: { y: 0.8 } });
 
-    // Transition from Logo Zoom to Crawl at 4.5 seconds (exact 1977 musical sync)
+    // Transition from Logo Zoom to Crawl at 4.8s (synced with 31.8s-32s mark in music)
     const timer = setTimeout(() => {
       setStage("crawl");
-    }, 4500);
+    }, 4800);
 
     return () => {
       clearTimeout(timer);

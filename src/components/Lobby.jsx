@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Copy, Check, Users, Play, Sparkles, AlertCircle, RefreshCw, Globe, ArrowRight } from "lucide-react";
+import { Copy, Check, Users, Play, Sparkles, AlertCircle, RefreshCw, Globe, ArrowRight, Mic, MicOff, Headphones, Settings } from "lucide-react";
 import { PLAYER_TOKENS } from "../../server/data/boardData.js";
 import { sounds } from "../utils/audio.js";
 import { socket } from "../utils/socket.js";
@@ -11,7 +11,13 @@ export default function Lobby({
   roomId,
   gameState,
   playerId,
-  isHost
+  isHost,
+  voiceStates = new Map(),
+  isMicMuted = false,
+  onToggleMic,
+  isDeafened = false,
+  onToggleDeafen,
+  onOpenSettings
 }) {
   const [name, setName] = useState(() => localStorage.getItem("vyapar_player_name") || "");
   const [selectedToken, setSelectedToken] = useState(() => {
@@ -151,6 +157,74 @@ export default function Lobby({
             </div>
           </div>
 
+          {/* Live Voice Chat & Audio Controls Bar */}
+          <div className="bg-slate-900 rounded-2xl p-3.5 border-2 border-black text-white mb-6 flex flex-wrap items-center justify-between gap-3 shadow-inner">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-slate-800 text-blue-400 border border-slate-700">
+                <Headphones className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-black text-white flex items-center gap-1.5">
+                  <span>Voice Chat Active</span>
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400">Mic & speaker active in room</div>
+              </div>
+            </div>
+
+            {/* Quick Toggle Buttons */}
+            <div className="flex items-center gap-2">
+              {/* Mic Toggle Button */}
+              {onToggleMic && (
+                <button
+                  type="button"
+                  onClick={onToggleMic}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    isMicMuted
+                      ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                      : "bg-emerald-600/20 border-emerald-500 text-emerald-400 hover:bg-emerald-600/30"
+                  }`}
+                  title={isMicMuted ? "Unmute Microphone" : "Mute Microphone"}
+                >
+                  {isMicMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+                  <span>{isMicMuted ? "Muted" : "Mic On"}</span>
+                </button>
+              )}
+
+              {/* Speaker / Deafen Toggle Button */}
+              {onToggleDeafen && (
+                <button
+                  type="button"
+                  onClick={onToggleDeafen}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black border transition flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                    isDeafened
+                      ? "bg-red-600/20 border-red-500 text-red-400 hover:bg-red-600/30"
+                      : "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                  }`}
+                  title={isDeafened ? "Undeafen Voice Speaker" : "Deafen Voice Speaker"}
+                >
+                  <Headphones className="w-3.5 h-3.5" />
+                  <span>{isDeafened ? "Deafened" : "Deafen"}</span>
+                </button>
+              )}
+
+              {/* Settings Button */}
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
+                  title="Audio & Game Settings"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Joined Players */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3 text-xs font-black uppercase text-slate-800">
@@ -166,19 +240,40 @@ export default function Lobby({
               {players.map((p) => {
                 const tok = PLAYER_TOKENS.find((t) => t.id === p.token) || PLAYER_TOKENS[0];
                 const isYou = p.id === playerId;
+                const vState = voiceStates?.get(p.id);
+                const isSpeaking = vState?.isSpeaking;
+                const isPlayerMuted = vState?.isMuted;
+                const isPlayerDeafened = vState?.isDeafened;
+
                 return (
                   <div
                     key={p.id}
                     className={`flex items-center gap-3 p-3 rounded-xl border-2 transition ${
-                      isYou ? "bg-amber-100 border-amber-500" : "bg-white border-black"
+                      isSpeaking
+                        ? "bg-emerald-100 border-emerald-500 ring-2 ring-emerald-400 shadow-md scale-[1.02]"
+                        : isYou
+                        ? "bg-amber-100 border-amber-500"
+                        : "bg-white border-black"
                     }`}
                   >
                     <div className="text-2xl">{tok.emoji}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-black text-sm text-slate-900 truncate">
-                        {p.name} {isYou ? "(You)" : ""}
+                      <div className="font-black text-sm text-slate-900 truncate flex items-center gap-1.5">
+                        <span style={{ color: p.color || "#000" }}>{p.name}</span>
+                        {isYou && <span className="text-[10px] text-slate-500 font-bold">(You)</span>}
+                        {isSpeaking && (
+                          <span className="flex h-2 w-2 relative shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-600 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                          </span>
+                        )}
+                        {isPlayerMuted && <MicOff className="w-3 h-3 text-red-500 shrink-0" title="Muted" />}
+                        {isPlayerDeafened && <Headphones className="w-3 h-3 text-red-500 shrink-0" title="Deafened" />}
                       </div>
-                      <div className="text-[11px] text-slate-600">{tok.name}</div>
+                      <div className="text-[11px] text-slate-600 flex items-center justify-between">
+                        <span>{tok.name}</span>
+                        {isSpeaking && <span className="text-[10px] text-emerald-700 font-black">Speaking...</span>}
+                      </div>
                     </div>
                     {p.isHost && (
                       <span className="text-[9px] bg-red-600 text-white font-black px-1.5 py-0.5 rounded">

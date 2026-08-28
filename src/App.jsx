@@ -597,15 +597,48 @@ export default function App() {
 
   if (!gameState || !gameState.gameStarted) {
     return (
-      <Lobby
-        onCreateRoom={handleCreateRoom}
-        onJoinRoom={handleJoinRoom}
-        onStartGame={handleStartGame}
-        roomId={roomId}
-        gameState={gameState}
-        playerId={playerId}
-        isHost={isHost}
-      />
+      <>
+        <Lobby
+          onCreateRoom={handleCreateRoom}
+          onJoinRoom={handleJoinRoom}
+          onStartGame={handleStartGame}
+          roomId={roomId}
+          gameState={gameState}
+          playerId={playerId}
+          isHost={isHost}
+          voiceStates={voiceStates}
+          isMicMuted={isMicMuted}
+          onToggleMic={handleToggleMic}
+          isDeafened={isDeafened}
+          onToggleDeafen={handleToggleDeafen}
+          onOpenSettings={() => setSettingsModalOpen(true)}
+        />
+
+        <SettingsModal
+          isOpen={settingsModalOpen}
+          onClose={() => setSettingsModalOpen(false)}
+          isMicMuted={isMicMuted}
+          onToggleMic={handleToggleMic}
+          isDeafened={isDeafened}
+          onToggleDeafen={handleToggleDeafen}
+          voiceVolume={voiceVolume}
+          onChangeVoiceVolume={(vol) => {
+            setVoiceVolume(vol);
+            voiceManager.setVoiceVolume(vol);
+          }}
+          soundboardVolume={soundboardVolume}
+          onChangeSoundboardVolume={(vol) => {
+            setSoundboardVolume(vol);
+            if (activeAudioRef.current) {
+              activeAudioRef.current.volume = isSoundMuted ? 0 : Math.max(0, Math.min(1.0, (vol / 100) * 0.65));
+            }
+          }}
+          isSoundMuted={isSoundMuted}
+          onToggleSoundFX={handleToggleSoundFX}
+          isHost={isHost}
+          onHostEndGame={handleHostEndGame}
+        />
+      </>
     );
   }
 
