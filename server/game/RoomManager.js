@@ -25,16 +25,6 @@ export class RoomManager {
   }
 
   createRoom(hostData, settings = {}) {
-    // Purge any old/stale rooms previously hosted by this user that are inactive
-    this.rooms.forEach((oldEngine, oldRoomId) => {
-      const isMyRoom = oldEngine.players.some(p => p.id === hostData.id && p.isHost);
-      const activeCount = oldEngine.players.filter(p => p.isConnected).length;
-      if (isMyRoom && (!oldEngine.gameStarted || oldEngine.phase === "GAME_OVER" || activeCount <= 1)) {
-        console.log(`[Room Cleaned] Purged old host room ${oldRoomId} for host ${hostData.name}`);
-        this.rooms.delete(oldRoomId);
-      }
-    });
-
     const roomId = this.generateRoomCode();
     const engine = new MonopolyEngine(roomId, hostData, settings);
     this.rooms.set(roomId, engine);

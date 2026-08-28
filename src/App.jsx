@@ -330,7 +330,6 @@ export default function App() {
   const handleCreateRoom = (name, token, color, settings) => {
     setPlayerName(name);
     setPlayerToken(token);
-    savePlayerSession(name, token, "");
 
     const payload = {
       hostData: { id: playerId, name, token, color },
@@ -338,13 +337,17 @@ export default function App() {
     };
 
     let handled = false;
+    let fallbackTimeout = null;
+
     const onResult = (res) => {
       if (handled) return;
       if (res && res.success) {
         handled = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
         setRoomId(res.roomId);
         setGameState(res.state);
         savePlayerSession(name, token, res.roomId);
+        setLastActiveRoom(res.roomId);
         if (!socket.connected) socket.connect();
         socket.emit("reconnect-player", { roomId: res.roomId, playerId });
       }
@@ -360,8 +363,8 @@ export default function App() {
       });
     }
 
-    // 2. Instant HTTP REST Fallback (triggers in 250ms if socket is dormant)
-    setTimeout(() => {
+    // 2. HTTP REST Fallback only if socket takes > 1200ms
+    fallbackTimeout = setTimeout(() => {
       if (!handled) {
         fetch("/api/create-room", {
           method: "POST",
@@ -372,7 +375,7 @@ export default function App() {
           .then(onResult)
           .catch(() => {});
       }
-    }, 250);
+    }, 1200);
   };
 
   const handleJoinRoom = (code, name, token, color) => {
@@ -386,17 +389,22 @@ export default function App() {
     };
 
     let handled = false;
+    let fallbackTimeout = null;
+
     const onResult = (res) => {
       if (handled) return;
       if (res && res.success) {
         handled = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
         setRoomId(res.roomId);
         setGameState(res.state);
         savePlayerSession(name, token, res.roomId);
+        setLastActiveRoom(res.roomId);
         if (!socket.connected) socket.connect();
         socket.emit("reconnect-player", { roomId: res.roomId, playerId });
       } else if (res && !res.success) {
         handled = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
         alert(res.error || "Failed to join room");
       }
     };
@@ -411,8 +419,8 @@ export default function App() {
       });
     }
 
-    // 2. Instant HTTP REST Fallback
-    setTimeout(() => {
+    // 2. HTTP REST Fallback only if socket takes > 1200ms
+    fallbackTimeout = setTimeout(() => {
       if (!handled) {
         fetch("/api/join-room", {
           method: "POST",
@@ -423,32 +431,45 @@ export default function App() {
           .then(onResult)
           .catch(() => {});
       }
-    }, 250);
+    }, 1200);
   };
 
   const handleStartGame = () => {
     if (!roomId) return;
     const payload = { roomId, playerId };
 
+    let handled = false;
+    let fallbackTimeout = null;
+
     const onStartResult = (res) => {
+      if (handled) return;
       if (res && res.success && res.state) {
+        handled = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
         setGameState(res.state);
       } else if (res && !res.success && res.error) {
+        handled = true;
+        if (fallbackTimeout) clearTimeout(fallbackTimeout);
         alert(res.error);
       }
     };
 
-    socket.emit("start-game", payload, onStartResult);
+    if (socket.connected) {
+      socket.emit("start-game", payload, onStartResult);
+    }
 
-    // Dual-transport REST fallback
-    fetch("/api/start-game", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-      .then((r) => r.json())
-      .then(onStartResult)
-      .catch(() => {});
+    fallbackTimeout = setTimeout(() => {
+      if (!handled) {
+        fetch("/api/start-game", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        })
+          .then((r) => r.json())
+          .then(onStartResult)
+          .catch(() => {});
+      }
+    }, 1200);
   };
 
   const handleRollDice = () => {
