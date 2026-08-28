@@ -40,7 +40,7 @@ export function getTile3DPosition(id) {
   return new THREE.Vector3(0, y, 0);
 }
 
-// Generate Crisp, Rich, Non-Washed-Out 2D Canvas Texture for Each 3D Tile
+// Generate Crisp, Rich 2D Canvas Texture for Each 3D Tile
 function createTileTexture(tile, isCorner) {
   const canvas = document.createElement("canvas");
   canvas.width = isCorner ? 512 : 256;
@@ -198,7 +198,7 @@ function createDiceFaceTexture(number) {
   };
 
   if (number === 1) {
-    ctx.fillStyle = "#DC2626";
+    ctx.fillStyle = "#DC2626"; // Red pip for 1
     drawPip(64, 64);
   } else if (number === 2) {
     drawPip(36, 36); drawPip(92, 92);
@@ -265,9 +265,10 @@ export default function Board3D({
   const diceMeshesRef = useRef([]);
   const tokenMeshesRef = useRef({});
   const houseMeshesRef = useRef({});
+  const ownerMeshesRef = useRef({});
   const prevPositionsRef = useRef({});
 
-  // Camera & Tracking Controller
+  // Camera & Tracking Controller (Pure Free Orbit when not tracking)
   const cameraStateRef = useRef({
     defaultPos: new THREE.Vector3(18, 22, 18),
     defaultTarget: new THREE.Vector3(0, 0, 0),
@@ -279,7 +280,7 @@ export default function Board3D({
   const animationStateRef = useRef({
     diceRolling: false,
     diceStart: 0,
-    diceDuration: 1500,
+    diceDuration: 1400,
     diceTargets: [1, 1],
     hoppingTokens: {}
   });
@@ -317,16 +318,17 @@ export default function Board3D({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
+    // Free Orbit Controls with damping (NO fighting lerp!)
     const controls = new OrbitControls(camera, renderer.domElement);
     controlsRef.current = controls;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.maxPolarAngle = Math.PI / 2.15;
-    controls.minDistance = 10;
+    controls.maxPolarAngle = Math.PI / 2.15; // Prevent under-board
+    controls.minDistance = 8;
     controls.maxDistance = 50;
     controls.target.copy(cameraStateRef.current.defaultTarget);
 
-    // Warm, Rich Lighting without Specular Glare Washout
+    // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
@@ -342,7 +344,7 @@ export default function Board3D({
     fillLight.position.set(-15, 15, -15);
     scene.add(fillLight);
 
-    // 2. Build 3D Board Base (Deep Dark Mahogany Base + Rich Luxury Green Center Felt)
+    // 2. Build 3D Board Base (Mahogany Slab + Center Felt)
     const baseGeo = new THREE.BoxGeometry(BOARD_SIZE + 0.6, 0.7, BOARD_SIZE + 0.6);
     const baseMat = new THREE.MeshStandardMaterial({
       color: "#181412",
@@ -354,7 +356,7 @@ export default function Board3D({
     baseMesh.receiveShadow = true;
     scene.add(baseMesh);
 
-    // Center Felt Mat (Deep Rich Forest Green)
+    // Center Felt Mat (Deep Forest Green)
     const feltSize = BOARD_SIZE - 2 * CORNER_SIZE;
     const feltGeo = new THREE.PlaneGeometry(feltSize, feltSize);
     const feltMat = new THREE.MeshStandardMaterial({
@@ -367,7 +369,7 @@ export default function Board3D({
     feltMesh.receiveShadow = true;
     scene.add(feltMesh);
 
-    // Center Monopoly India Crest Logo
+    // Center Monopoly Logo
     const logoCanvas = document.createElement("canvas");
     logoCanvas.width = 512;
     logoCanvas.height = 512;
@@ -455,7 +457,7 @@ export default function Board3D({
 
     scene.add(cardGroup);
 
-    // 4. Build 40 Tile Meshes with Perfect Inward Rotation & Crisp Colors
+    // 4. Build 40 Tile Meshes
     const tileGroup = new THREE.Group();
     tileGroup.name = "TILES_GROUP";
     BOARD_TILES.forEach((tile) => {
@@ -546,7 +548,7 @@ export default function Board3D({
 
     mount.addEventListener("pointerdown", handlePointerDown);
 
-    // 7. Main WebGL Animation Loop with Dynamic Smooth Camera Tracking
+    // 7. Main Animation Loop
     let reqId;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
@@ -554,7 +556,7 @@ export default function Board3D({
       const anim = animationStateRef.current;
       const camState = cameraStateRef.current;
 
-      // Tumbling Dice Animation (~1.5s total time)
+      // Tumbling Dice Animation
       if (anim.diceRolling && diceMeshesRef.current.length === 2) {
         const progress = Math.min(1, (now - anim.diceStart) / anim.diceDuration);
 
@@ -594,7 +596,7 @@ export default function Board3D({
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
-        // Update close-up dynamic camera target
+        // Dynamic close-up camera follows the hopping token
         camState.trackTargetPos.copy(tokenMesh.position);
         camState.trackCameraPos.set(tokenMesh.position.x + 6, 8.5, tokenMesh.position.z + 6);
 
@@ -605,13 +607,10 @@ export default function Board3D({
         }
       });
 
-      // Smooth Dynamic Camera Close-Up Swoop
+      // ONLY lerp camera if currently tracking a hopping piece
       if (camState.isTracking) {
         camera.position.lerp(camState.trackCameraPos, 0.08);
         controls.target.lerp(camState.trackTargetPos, 0.08);
-      } else {
-        camera.position.lerp(camState.defaultPos, 0.05);
-        controls.target.lerp(camState.defaultTarget, 0.05);
       }
 
       controls.update();
@@ -641,7 +640,7 @@ export default function Board3D({
     };
   }, []);
 
-  // 2. Synchronize 3D Player Tokens & Step-by-Step Hopping with Camera Follow
+  // 2. Synchronize 3D Player Tokens & Step-by-Step Hopping
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -748,7 +747,7 @@ export default function Board3D({
             stepIdx++;
           } else {
             clearInterval(interval);
-            // Hold close-up view for 600ms then smoothly return to isometric overview
+            // Return camera control to user after piece lands
             setTimeout(() => {
               cameraStateRef.current.isTracking = false;
             }, 600);
@@ -759,49 +758,83 @@ export default function Board3D({
     });
   }, [players]);
 
-  // 3. Synchronize 3D Houses and Hotels
+  // 3. Synchronize 3D Ownership Indicators & Houses/Hotels
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
 
+    // Clean old house and owner meshes
     Object.values(houseMeshesRef.current).forEach((m) => scene.remove(m));
     houseMeshesRef.current = {};
+
+    Object.values(ownerMeshesRef.current).forEach((m) => scene.remove(m));
+    ownerMeshesRef.current = {};
 
     Object.keys(properties).forEach((tileIdStr) => {
       const tileId = Number(tileIdStr);
       const prop = properties[tileId];
-      if (!prop || prop.houses === 0) return;
+      if (!prop) return;
 
       const tilePos = getTile3DPosition(tileId);
-      const isHotel = prop.houses >= 5;
+      const isCorner = [0, 10, 20, 30].includes(tileId);
+      const w = isCorner ? CORNER_SIZE : TILE_WIDTH;
 
-      const group = new THREE.Group();
+      // Render 3D Color-Coded Ownership Strip if owned
+      if (prop.owner) {
+        const ownerPlayer = players.find((p) => p.id === prop.owner);
+        const ownerColor = ownerPlayer?.color || "#F59E0B";
 
-      if (isHotel) {
-        // Red Hotel 3D Mesh
-        const hotelMat = new THREE.MeshStandardMaterial({ color: "#DC2626", roughness: 0.3 });
-        const hotel = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 0.45), hotelMat);
-        hotel.position.set(0, 0.22, 0);
-        hotel.castShadow = true;
-        group.add(hotel);
-      } else {
-        // Green House 3D Meshes (1-4)
-        const houseMat = new THREE.MeshStandardMaterial({ color: "#16A34A", roughness: 0.3 });
-        for (let i = 0; i < prop.houses; i++) {
-          const house = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.24), houseMat);
-          house.position.set((i - (prop.houses - 1) / 2) * 0.3, 0.13, 0);
-          house.castShadow = true;
-          group.add(house);
-        }
+        const ownerMat = new THREE.MeshStandardMaterial({
+          color: ownerColor,
+          roughness: 0.3,
+          metalness: 0.2
+        });
+
+        // Elevated owner border marker on the inner edge of the tile
+        const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.45), ownerMat);
+        ownerStrip.position.set(tilePos.x, 0.48, tilePos.z);
+
+        if (tileId >= 1 && tileId <= 9) ownerStrip.position.z -= 1.25;
+        else if (tileId >= 11 && tileId <= 19) { ownerStrip.position.x += 1.25; ownerStrip.rotation.y = Math.PI / 2; }
+        else if (tileId >= 21 && tileId <= 29) ownerStrip.position.z += 1.25;
+        else if (tileId >= 31 && tileId <= 39) { ownerStrip.position.x -= 1.25; ownerStrip.rotation.y = Math.PI / 2; }
+
+        ownerStrip.castShadow = true;
+        scene.add(ownerStrip);
+        ownerMeshesRef.current[tileId] = ownerStrip;
       }
 
-      group.position.set(tilePos.x, 0.46, tilePos.z);
-      scene.add(group);
-      houseMeshesRef.current[tileId] = group;
-    });
-  }, [properties]);
+      // Render 3D Houses / Hotels
+      if (prop.houses > 0) {
+        const isHotel = prop.houses >= 5;
+        const group = new THREE.Group();
 
-  // 4. Trigger 3D Tumbling Dice Roll Animation (~1.5s duration)
+        if (isHotel) {
+          // Red Hotel 3D Mesh
+          const hotelMat = new THREE.MeshStandardMaterial({ color: "#DC2626", roughness: 0.3 });
+          const hotel = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 0.45), hotelMat);
+          hotel.position.set(0, 0.22, 0);
+          hotel.castShadow = true;
+          group.add(hotel);
+        } else {
+          // Green House 3D Meshes (1-4)
+          const houseMat = new THREE.MeshStandardMaterial({ color: "#16A34A", roughness: 0.3 });
+          for (let i = 0; i < prop.houses; i++) {
+            const house = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.24), houseMat);
+            house.position.set((i - (prop.houses - 1) / 2) * 0.3, 0.13, 0);
+            house.castShadow = true;
+            group.add(house);
+          }
+        }
+
+        group.position.set(tilePos.x, 0.46, tilePos.z);
+        scene.add(group);
+        houseMeshesRef.current[tileId] = group;
+      }
+    });
+  }, [properties, players]);
+
+  // 4. Trigger Instant 3D Tumbling Dice Roll Synchronized with Server Dice
   const handleRollClick = () => {
     sounds.playDiceRoll();
     setIsRolling(true);
@@ -810,24 +843,25 @@ export default function Board3D({
       ...animationStateRef.current,
       diceRolling: true,
       diceStart: performance.now(),
-      diceDuration: 1500,
-      diceTargets: [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1]
+      diceDuration: 1400,
+      diceTargets: dice || [1, 1]
     };
 
-    setTimeout(() => {
-      onRollDice();
-    }, 1500);
+    // Immediately trigger server roll so server dice updates synchronously
+    onRollDice();
   };
 
   // Sync Final Dice Faces when Server Dice Updates
   useEffect(() => {
     if (dice && dice.length === 2) {
       animationStateRef.current.diceTargets = dice;
-      diceMeshesRef.current.forEach((die, idx) => {
-        const rot = getDiceTargetRotation(dice[idx] || 1);
-        die.rotation.set(rot.x, rot.y, rot.z);
-        die.position.y = 0.86;
-      });
+      if (!animationStateRef.current.diceRolling) {
+        diceMeshesRef.current.forEach((die, idx) => {
+          const rot = getDiceTargetRotation(dice[idx] || 1);
+          die.rotation.set(rot.x, rot.y, rot.z);
+          die.position.y = 0.86;
+        });
+      }
     }
   }, [dice]);
 
