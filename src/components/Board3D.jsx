@@ -469,7 +469,7 @@ export default function Board3D({
 
     scene.add(cardGroup);
 
-    // 4. Build 40 Tile Meshes: Authentic Monopoly Orientation
+    // 4. Build 40 Tile Meshes: Perfect Grid Alignment & Upright Orientations
     const tileGroup = new THREE.Group();
     tileGroup.name = "TILES_GROUP";
     BOARD_TILES.forEach((tile) => {
@@ -487,23 +487,17 @@ export default function Board3D({
       const pos = getTile3DPosition(tile.id);
       mesh.position.set(pos.x, 0.41, pos.z);
 
-      // AUTHENTIC MONOPOLY TABLETOP ROTATIONS:
-      if (tile.id === 0) {
-        mesh.rotation.y = Math.PI / 4;
+      // ALL 4 CORNERS ARE SQUARE TO THE BOARD (rotation.y = 0)
+      if (isCorner) {
+        mesh.rotation.y = 0;
       } else if (tile.id >= 1 && tile.id <= 9) {
-        mesh.rotation.y = 0; // Bottom row: Text upright looking from bottom, Color bar at inner felt
-      } else if (tile.id === 10) {
-        mesh.rotation.y = -Math.PI / 4;
+        mesh.rotation.y = 0; // Bottom row: Text upright looking from bottom (+Z -> -Z)
       } else if (tile.id >= 11 && tile.id <= 19) {
-        mesh.rotation.y = -Math.PI / 2; // Left row: Text upright looking from left, Color bar at inner felt
-      } else if (tile.id === 20) {
-        mesh.rotation.y = -3 * Math.PI / 4;
+        mesh.rotation.y = Math.PI / 2; // Left row: Text upright looking from left (-X -> +X)
       } else if (tile.id >= 21 && tile.id <= 29) {
-        mesh.rotation.y = Math.PI; // Top row: Text upright looking from top, Color bar at inner felt
-      } else if (tile.id === 30) {
-        mesh.rotation.y = 3 * Math.PI / 4;
+        mesh.rotation.y = Math.PI; // Top row: Text upright looking from top (-Z -> +Z)
       } else if (tile.id >= 31 && tile.id <= 39) {
-        mesh.rotation.y = Math.PI / 2; // Right row: Text upright looking from right, Color bar at inner felt
+        mesh.rotation.y = -Math.PI / 2; // Right row: Text upright looking from right (+X -> -X)
       }
 
       mesh.receiveShadow = true;
