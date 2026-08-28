@@ -59,12 +59,14 @@ function createTileTexture(tile, isCorner) {
   const groupInfo = tile.group ? COLOR_GROUPS[tile.group] : null;
 
   if (tile.type === "property" && groupInfo) {
+    // Saturated Property Color Bar at top
     ctx.fillStyle = groupInfo.color;
     ctx.fillRect(5, 5, canvas.width - 10, 130);
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 8;
     ctx.strokeRect(5, 5, canvas.width - 10, 130);
 
+    // City Name
     ctx.fillStyle = "#000000";
     ctx.font = "900 28px sans-serif";
     ctx.textAlign = "center";
@@ -76,6 +78,7 @@ function createTileTexture(tile, isCorner) {
       ctx.fillText(words.slice(1).join(" "), canvas.width / 2, 245);
     }
 
+    // Price tag at bottom
     ctx.font = "900 32px monospace";
     ctx.fillStyle = "#0F172A";
     ctx.fillText("M" + tile.price, canvas.width / 2, 450);
@@ -229,7 +232,6 @@ function updateDieMaterials(dieMesh, topValue) {
   dieMesh.material[1].map = createDiceFaceTexture(otherValues[1]);
   dieMesh.material[1].needsUpdate = true;
 
-  // Material index 2 is +Y (TOP FACE)
   dieMesh.material[2].map = createDiceFaceTexture(v);
   dieMesh.material[2].needsUpdate = true;
 
@@ -277,9 +279,15 @@ export default function Board3D({
   const prevPositionsRef = useRef({});
   const pendingHopQueueRef = useRef([]);
 
-  // Fixed Board-Centered Camera Position
-  const defaultCamPos = useRef(new THREE.Vector3(18, 22, 18));
-  const boardCenterTarget = useRef(new THREE.Vector3(0, 0, 0));
+  // Camera & Tracking Controller
+  const cameraStateRef = useRef({
+    defaultPos: new THREE.Vector3(18, 22, 18),
+    defaultTarget: new THREE.Vector3(0, 0, 0),
+    isTracking: false,
+    isReturning: false,
+    trackTargetPos: new THREE.Vector3(0, 0, 0),
+    trackCameraPos: new THREE.Vector3(18, 22, 18)
+  });
 
   const animationStateRef = useRef({
     diceRolling: false,
@@ -289,16 +297,17 @@ export default function Board3D({
     hoppingTokens: {}
   });
 
-  // Snap / Reset camera smoothly to default board-centered overview
   const resetCamera = () => {
     if (cameraRef.current && controlsRef.current) {
-      cameraRef.current.position.copy(defaultCamPos.current);
-      controlsRef.current.target.copy(boardCenterTarget.current);
+      cameraStateRef.current.isTracking = false;
+      cameraStateRef.current.isReturning = false;
+      cameraRef.current.position.copy(cameraStateRef.current.defaultPos);
+      controlsRef.current.target.copy(cameraStateRef.current.defaultTarget);
       controlsRef.current.update();
     }
   };
 
-  // 1. Initialize Three.js WebGL Scene (Always Board-Centered!)
+  // 1. Initialize Three.js WebGL Scene
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
@@ -310,9 +319,8 @@ export default function Board3D({
     sceneRef.current = scene;
     scene.background = new THREE.Color("#111512");
 
-    // Board-centered Isometric Camera
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-    camera.position.copy(defaultCamPos.current);
+    camera.position.copy(cameraStateRef.current.defaultPos);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -323,15 +331,14 @@ export default function Board3D({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
-    // Free Orbit Controls anchored strictly at the board center [0, 0, 0]
     const controls = new OrbitControls(camera, renderer.domElement);
     controlsRef.current = controls;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.maxPolarAngle = Math.PI / 2.15; // Prevent viewing underneath the table
+    controls.maxPolarAngle = Math.PI / 2.15;
     controls.minDistance = 8;
     controls.maxDistance = 50;
-    controls.target.copy(boardCenterTarget.current); // Fixed center!
+    controls.target.copy(cameraStateRef.current.defaultTarget);
 
     // Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
@@ -496,7 +503,7 @@ export default function Board3D({
       const mats = [
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }),
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.4 }),
-        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }), // TOP FACE
+        new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(1), roughness: 0.4 }),
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(6), roughness: 0.4 }),
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(3), roughness: 0.4 }),
         new THREE.MeshStandardMaterial({ map: createDiceFaceTexture(4), roughness: 0.4 })
@@ -557,12 +564,13 @@ export default function Board3D({
 
     mount.addEventListener("pointerdown", handlePointerDown);
 
-    // 7. Main Animation Loop
+    // 7. Main Animation Loop with Dynamic Shared Cinematic Zoom
     let reqId;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
       const now = performance.now();
       const anim = animationStateRef.current;
+      const camState = cameraStateRef.current;
 
       // Tumbling Dice Animation
       if (anim.diceRolling && diceMeshesRef.current.length === 2) {
@@ -620,12 +628,28 @@ export default function Board3D({
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
+        // Cinematic Zoom: Focus towards the moving piece area
+        camState.trackTargetPos.set(tokenMesh.position.x * 0.5, 0.45, tokenMesh.position.z * 0.5);
+        camState.trackCameraPos.set(tokenMesh.position.x * 0.6 + 10, 14, tokenMesh.position.z * 0.6 + 10);
+
         if (p >= 1) {
           tokenMesh.position.copy(toPos);
           tokenMesh.position.y = 0.5;
           delete anim.hoppingTokens[pid];
         }
       });
+
+      // Smooth Camera Transition during Hopping and Return
+      if (camState.isTracking) {
+        camera.position.lerp(camState.trackCameraPos, 0.08);
+        controls.target.lerp(camState.trackTargetPos, 0.08);
+      } else if (camState.isReturning) {
+        camera.position.lerp(camState.defaultPos, 0.06);
+        controls.target.lerp(camState.defaultTarget, 0.06);
+        if (camera.position.distanceTo(camState.defaultPos) < 0.2) {
+          camState.isReturning = false;
+        }
+      }
 
       controls.update();
       renderer.render(scene, camera);
@@ -654,7 +678,7 @@ export default function Board3D({
     };
   }, []);
 
-  // 2. Synchronize 3D Player Tokens & Start Hop ONLY AFTER Dice Settle!
+  // 2. Synchronize 3D Player Tokens & Start Hop ONLY AFTER Dice Settle with Shared Zoom!
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -734,6 +758,10 @@ export default function Board3D({
             return;
           }
 
+          // Trigger Shared Zoom In during token hop
+          cameraStateRef.current.isTracking = true;
+          cameraStateRef.current.isReturning = false;
+
           let stepIdx = 0;
           let prevStep = currentPos;
 
@@ -753,12 +781,16 @@ export default function Board3D({
               stepIdx++;
             } else {
               clearInterval(interval);
+              // Hold zoomed view for 600ms then smoothly glide back out to overview
+              setTimeout(() => {
+                cameraStateRef.current.isTracking = false;
+                cameraStateRef.current.isReturning = true;
+              }, 600);
               if (onMovementComplete) onMovementComplete();
             }
           }, 300);
         };
 
-        // If dice are currently rolling in the air, QUEUE the hop until the dice settle!
         if (animationStateRef.current.diceRolling) {
           pendingHopQueueRef.current.push(startHoppingSequence);
         } else {
@@ -768,7 +800,7 @@ export default function Board3D({
     });
   }, [players]);
 
-  // 3. Synchronize 3D Ownership Indicators & Houses/Hotels
+  // 3. Synchronize 3D Ownership Indicators at Bottom of Tile (Outer Price Edge)
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -788,6 +820,7 @@ export default function Board3D({
       const isCorner = [0, 10, 20, 30].includes(tileId);
       const w = isCorner ? CORNER_SIZE : TILE_WIDTH;
 
+      // Render 3D Color-Coded Ownership Ribbon at the BOTTOM of the card (near price tag)
       if (prop.owner) {
         const ownerPlayer = players.find((p) => p.id === prop.owner);
         const ownerColor = ownerPlayer?.color || "#F59E0B";
@@ -798,19 +831,28 @@ export default function Board3D({
           metalness: 0.2
         });
 
-        const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.45), ownerMat);
+        // Sleek owner ribbon placed cleanly at the bottom edge (leaving top color bar unobstructed)
+        const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.35), ownerMat);
         ownerStrip.position.set(tilePos.x, 0.48, tilePos.z);
 
-        if (tileId >= 1 && tileId <= 9) ownerStrip.position.z -= 1.25;
-        else if (tileId >= 11 && tileId <= 19) { ownerStrip.position.x += 1.25; ownerStrip.rotation.y = Math.PI / 2; }
-        else if (tileId >= 21 && tileId <= 29) ownerStrip.position.z += 1.25;
-        else if (tileId >= 31 && tileId <= 39) { ownerStrip.position.x -= 1.25; ownerStrip.rotation.y = Math.PI / 2; }
+        if (tileId >= 1 && tileId <= 9) {
+          ownerStrip.position.z += 1.25; // Bottom edge (near price)
+        } else if (tileId >= 11 && tileId <= 19) {
+          ownerStrip.position.x -= 1.25; // Bottom edge
+          ownerStrip.rotation.y = Math.PI / 2;
+        } else if (tileId >= 21 && tileId <= 29) {
+          ownerStrip.position.z -= 1.25; // Bottom edge
+        } else if (tileId >= 31 && tileId <= 39) {
+          ownerStrip.position.x += 1.25; // Bottom edge
+          ownerStrip.rotation.y = Math.PI / 2;
+        }
 
         ownerStrip.castShadow = true;
         scene.add(ownerStrip);
         ownerMeshesRef.current[tileId] = ownerStrip;
       }
 
+      // Render 3D Houses / Hotels on top of the lot
       if (prop.houses > 0) {
         const isHotel = prop.houses >= 5;
         const group = new THREE.Group();
@@ -910,9 +952,9 @@ export default function Board3D({
             )}
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons: Strictly Mutually Exclusive */}
           <div className="w-full flex items-center justify-center gap-2">
-            {isMyTurn && phase === "ROLL" && (
+            {isMyTurn && phase === "ROLL" && !isPendingBuy && (
               <button
                 onClick={handleRollClick}
                 disabled={isRolling}

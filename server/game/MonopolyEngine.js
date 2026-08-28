@@ -212,7 +212,10 @@ export class MonopolyEngine {
     const player = this.getCurrentPlayer();
     if (!player || player.id !== playerId) return { success: false, error: "Not your turn." };
     if (player.money < 0) return { success: false, error: "Must resolve debt before rolling." };
-    if (this.phase !== "ROLL") return { success: false, error: "Cannot roll right now." };
+    if (this.phase !== "ROLL" || this.pendingAction) return { success: false, error: "Cannot roll right now." };
+
+    // Immediately transition to ACTION phase so duplicate roll requests are impossible
+    this.phase = "ACTION";
 
     // Reset action timer to 40 seconds after rolling
     this.turnTimeRemaining = this.settings.turnTimerSeconds || 40;
