@@ -59,14 +59,14 @@ function createTileTexture(tile, isCorner) {
   const groupInfo = tile.group ? COLOR_GROUPS[tile.group] : null;
 
   if (tile.type === "property" && groupInfo) {
-    // Saturated Property Color Bar at top
+    // Saturated Property Color Bar at top (which faces the center felt)
     ctx.fillStyle = groupInfo.color;
     ctx.fillRect(5, 5, canvas.width - 10, 130);
     ctx.strokeStyle = "#000000";
     ctx.lineWidth = 8;
     ctx.strokeRect(5, 5, canvas.width - 10, 130);
 
-    // City Name in high contrast
+    // City Name
     ctx.fillStyle = "#000000";
     ctx.font = "900 28px sans-serif";
     ctx.textAlign = "center";
@@ -78,7 +78,7 @@ function createTileTexture(tile, isCorner) {
       ctx.fillText(words.slice(1).join(" "), canvas.width / 2, 245);
     }
 
-    // Price tag at bottom
+    // Price tag at bottom (outer rim)
     ctx.font = "900 32px monospace";
     ctx.fillStyle = "#0F172A";
     ctx.fillText("M" + tile.price, canvas.width / 2, 450);
@@ -469,7 +469,7 @@ export default function Board3D({
 
     scene.add(cardGroup);
 
-    // 4. Build 40 Tile Meshes with Consistent Outward-Facing Color Bars & Inward-Facing Text
+    // 4. Build 40 Tile Meshes: Color Bar is ALWAYS on INNER side (towards center felt), Text faces INWARD
     const tileGroup = new THREE.Group();
     tileGroup.name = "TILES_GROUP";
     BOARD_TILES.forEach((tile) => {
@@ -487,15 +487,15 @@ export default function Board3D({
       const pos = getTile3DPosition(tile.id);
       mesh.position.set(pos.x, 0.41, pos.z);
 
-      // PERFECT ROTATIONS: Color bar is ALWAYS at the outer rim, Text faces INWARD towards center
+      // ALL 4 SIDES HAVE COLOR BARS ON THE INSIDE (FACING CENTER FELT)
       if (tile.id >= 1 && tile.id <= 9) {
-        mesh.rotation.y = Math.PI; // Color bar at +Z (outer rim)
+        mesh.rotation.y = 0; // Color bar towards -Z (center felt)
       } else if (tile.id >= 11 && tile.id <= 19) {
-        mesh.rotation.y = -Math.PI / 2; // Color bar at -X (outer rim)
+        mesh.rotation.y = Math.PI / 2; // Color bar towards +X (center felt)
       } else if (tile.id >= 21 && tile.id <= 29) {
-        mesh.rotation.y = 0; // Color bar at -Z (outer rim)
+        mesh.rotation.y = Math.PI; // Color bar towards +Z (center felt)
       } else if (tile.id >= 31 && tile.id <= 39) {
-        mesh.rotation.y = Math.PI / 2; // Color bar at +X (outer rim)
+        mesh.rotation.y = -Math.PI / 2; // Color bar towards -X (center felt)
       }
 
       mesh.receiveShadow = true;
@@ -631,7 +631,7 @@ export default function Board3D({
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
-        // Cinematic Zoom towards the moving piece area
+        // Cinematic Zoom towards moving piece
         camState.trackTargetPos.set(tokenMesh.position.x * 0.5, 0.45, tokenMesh.position.z * 0.5);
         camState.trackCameraPos.set(tokenMesh.position.x * 0.6 + 10, 14, tokenMesh.position.z * 0.6 + 10);
 
@@ -801,7 +801,7 @@ export default function Board3D({
     });
   }, [players]);
 
-  // 3. Synchronize 3D Ownership Ribbon (at Inner Price Edge) & Houses/Hotels (on Outer Color Bar)
+  // 3. Synchronize 3D Ownership Ribbon (at Outer Price Edge) & Houses/Hotels (on Inner Color Bar)
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -821,7 +821,7 @@ export default function Board3D({
       const isCorner = [0, 10, 20, 30].includes(tileId);
       const w = isCorner ? CORNER_SIZE : TILE_WIDTH;
 
-      // 3D Ownership Ribbon placed cleanly on the INNER PRICE EDGE (towards center felt)
+      // 3D Ownership Ribbon placed cleanly at the OUTER PRICE EDGE (near table rim, leaving inner color bar 100% visible)
       if (prop.owner) {
         const ownerPlayer = players.find((p) => p.id === prop.owner);
         const ownerColor = ownerPlayer?.color || "#F59E0B";
@@ -835,16 +835,16 @@ export default function Board3D({
         const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.35), ownerMat);
         ownerStrip.position.set(tilePos.x, 0.48, tilePos.z);
 
-        // Position on the INNER edge towards center felt [0, 0, 0]
+        // Position on the OUTER RIM edge (away from center felt)
         if (tileId >= 1 && tileId <= 9) {
-          ownerStrip.position.z -= 1.25; // Inner edge
+          ownerStrip.position.z += 1.25; // Outer edge
         } else if (tileId >= 11 && tileId <= 19) {
-          ownerStrip.position.x += 1.25; // Inner edge
+          ownerStrip.position.x -= 1.25; // Outer edge
           ownerStrip.rotation.y = Math.PI / 2;
         } else if (tileId >= 21 && tileId <= 29) {
-          ownerStrip.position.z += 1.25; // Inner edge
+          ownerStrip.position.z -= 1.25; // Outer edge
         } else if (tileId >= 31 && tileId <= 39) {
-          ownerStrip.position.x -= 1.25; // Inner edge
+          ownerStrip.position.x += 1.25; // Outer edge
           ownerStrip.rotation.y = Math.PI / 2;
         }
 
@@ -853,7 +853,7 @@ export default function Board3D({
         ownerMeshesRef.current[tileId] = ownerStrip;
       }
 
-      // 3D Houses / Hotels placed neatly on the OUTER COLOR BAR
+      // 3D Houses / Hotels placed squarely on the INNER COLOR BAR (bordering the center green felt)
       if (prop.houses > 0) {
         const isHotel = prop.houses >= 5;
         const group = new THREE.Group();
@@ -874,12 +874,12 @@ export default function Board3D({
           }
         }
 
-        // Position on the OUTER color bar edge
+        // Position on the INNER color bar edge
         group.position.set(tilePos.x, 0.46, tilePos.z);
-        if (tileId >= 1 && tileId <= 9) group.position.z += 1.15;
-        else if (tileId >= 11 && tileId <= 19) group.position.x -= 1.15;
-        else if (tileId >= 21 && tileId <= 29) group.position.z -= 1.15;
-        else if (tileId >= 31 && tileId <= 39) group.position.x += 1.15;
+        if (tileId >= 1 && tileId <= 9) group.position.z -= 1.15;
+        else if (tileId >= 11 && tileId <= 19) group.position.x += 1.15;
+        else if (tileId >= 21 && tileId <= 29) group.position.z += 1.15;
+        else if (tileId >= 31 && tileId <= 39) group.position.x -= 1.15;
 
         scene.add(group);
         houseMeshesRef.current[tileId] = group;
