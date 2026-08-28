@@ -40,7 +40,7 @@ export function getTile3DPosition(id) {
   return new THREE.Vector3(0, y, 0);
 }
 
-// Generate Crisp, Rich 2D Canvas Texture for Each 3D Tile
+// Generate Crisp 2D Canvas Texture for Each 3D Tile
 function createTileTexture(tile, isCorner) {
   const canvas = document.createElement("canvas");
   canvas.width = isCorner ? 512 : 256;
@@ -66,7 +66,7 @@ function createTileTexture(tile, isCorner) {
     ctx.lineWidth = 8;
     ctx.strokeRect(5, 5, canvas.width - 10, 130);
 
-    // City Name
+    // City Name in high contrast
     ctx.fillStyle = "#000000";
     ctx.font = "900 28px sans-serif";
     ctx.textAlign = "center";
@@ -356,7 +356,7 @@ export default function Board3D({
     fillLight.position.set(-15, 15, -15);
     scene.add(fillLight);
 
-    // 2. Build 3D Board Base (Mahogany Slab + Deep Casino Green Center Felt)
+    // 2. Build 3D Board Base
     const baseGeo = new THREE.BoxGeometry(BOARD_SIZE + 0.6, 0.7, BOARD_SIZE + 0.6);
     const baseMat = new THREE.MeshStandardMaterial({
       color: "#181412",
@@ -469,7 +469,7 @@ export default function Board3D({
 
     scene.add(cardGroup);
 
-    // 4. Build 40 Tile Meshes
+    // 4. Build 40 Tile Meshes with Consistent Outward-Facing Color Bars & Inward-Facing Text
     const tileGroup = new THREE.Group();
     tileGroup.name = "TILES_GROUP";
     BOARD_TILES.forEach((tile) => {
@@ -487,10 +487,16 @@ export default function Board3D({
       const pos = getTile3DPosition(tile.id);
       mesh.position.set(pos.x, 0.41, pos.z);
 
-      if (tile.id >= 1 && tile.id <= 9) mesh.rotation.y = 0;
-      else if (tile.id >= 11 && tile.id <= 19) mesh.rotation.y = Math.PI / 2;
-      else if (tile.id >= 21 && tile.id <= 29) mesh.rotation.y = Math.PI;
-      else if (tile.id >= 31 && tile.id <= 39) mesh.rotation.y = -Math.PI / 2;
+      // PERFECT ROTATIONS: Color bar is ALWAYS at the outer rim, Text faces INWARD towards center
+      if (tile.id >= 1 && tile.id <= 9) {
+        mesh.rotation.y = Math.PI; // Color bar at +Z (outer rim)
+      } else if (tile.id >= 11 && tile.id <= 19) {
+        mesh.rotation.y = -Math.PI / 2; // Color bar at -X (outer rim)
+      } else if (tile.id >= 21 && tile.id <= 29) {
+        mesh.rotation.y = 0; // Color bar at -Z (outer rim)
+      } else if (tile.id >= 31 && tile.id <= 39) {
+        mesh.rotation.y = Math.PI / 2; // Color bar at +X (outer rim)
+      }
 
       mesh.receiveShadow = true;
       mesh.userData = { tileId: tile.id, tileType: tile.type };
@@ -579,7 +585,6 @@ export default function Board3D({
         diceMeshesRef.current.forEach((die, idx) => {
           const spinMultiplier = (1 - progress) * 12 * Math.PI;
 
-          // Parabolic Drop Arc
           const bounceHeight = Math.sin(progress * Math.PI) * 2.8 * (1 - progress * 0.7);
           die.position.y = 0.86 + bounceHeight;
           die.position.x = (idx === 0 ? -1.1 : 1.1) + Math.sin(progress * Math.PI * 2) * 0.4;
@@ -590,7 +595,6 @@ export default function Board3D({
           die.rotation.z = spinMultiplier * 1.2;
         });
 
-        // When dice tumbling completes: SETTLE DICE FIRST!
         if (progress >= 1) {
           anim.diceRolling = false;
           setIsRolling(false);
@@ -606,7 +610,6 @@ export default function Board3D({
             diceMeshesRef.current[1].position.set(0.8, 0.86, 0);
           }
 
-          // Trigger any queued token movements now that dice have settled!
           if (pendingHopQueueRef.current.length > 0) {
             const nextHop = pendingHopQueueRef.current.shift();
             if (nextHop) nextHop();
@@ -628,7 +631,7 @@ export default function Board3D({
         tokenMesh.position.z = THREE.MathUtils.lerp(fromPos.z, toPos.z, p);
         tokenMesh.position.y = 0.5 + Math.sin(p * Math.PI) * 1.6;
 
-        // Cinematic Zoom: Focus towards the moving piece area
+        // Cinematic Zoom towards the moving piece area
         camState.trackTargetPos.set(tokenMesh.position.x * 0.5, 0.45, tokenMesh.position.z * 0.5);
         camState.trackCameraPos.set(tokenMesh.position.x * 0.6 + 10, 14, tokenMesh.position.z * 0.6 + 10);
 
@@ -639,7 +642,7 @@ export default function Board3D({
         }
       });
 
-      // Smooth Camera Transition during Hopping and Return
+      // Smooth Camera Transition
       if (camState.isTracking) {
         camera.position.lerp(camState.trackCameraPos, 0.08);
         controls.target.lerp(camState.trackTargetPos, 0.08);
@@ -758,7 +761,6 @@ export default function Board3D({
             return;
           }
 
-          // Trigger Shared Zoom In during token hop
           cameraStateRef.current.isTracking = true;
           cameraStateRef.current.isReturning = false;
 
@@ -781,7 +783,6 @@ export default function Board3D({
               stepIdx++;
             } else {
               clearInterval(interval);
-              // Hold zoomed view for 600ms then smoothly glide back out to overview
               setTimeout(() => {
                 cameraStateRef.current.isTracking = false;
                 cameraStateRef.current.isReturning = true;
@@ -800,7 +801,7 @@ export default function Board3D({
     });
   }, [players]);
 
-  // 3. Synchronize 3D Ownership Indicators at Bottom of Tile (Outer Price Edge)
+  // 3. Synchronize 3D Ownership Ribbon (at Inner Price Edge) & Houses/Hotels (on Outer Color Bar)
   useEffect(() => {
     if (!sceneRef.current) return;
     const scene = sceneRef.current;
@@ -820,7 +821,7 @@ export default function Board3D({
       const isCorner = [0, 10, 20, 30].includes(tileId);
       const w = isCorner ? CORNER_SIZE : TILE_WIDTH;
 
-      // Render 3D Color-Coded Ownership Ribbon at the BOTTOM of the card (near price tag)
+      // 3D Ownership Ribbon placed cleanly on the INNER PRICE EDGE (towards center felt)
       if (prop.owner) {
         const ownerPlayer = players.find((p) => p.id === prop.owner);
         const ownerColor = ownerPlayer?.color || "#F59E0B";
@@ -831,19 +832,19 @@ export default function Board3D({
           metalness: 0.2
         });
 
-        // Sleek owner ribbon placed cleanly at the bottom edge (leaving top color bar unobstructed)
         const ownerStrip = new THREE.Mesh(new THREE.BoxGeometry(w - 0.08, 0.08, 0.35), ownerMat);
         ownerStrip.position.set(tilePos.x, 0.48, tilePos.z);
 
+        // Position on the INNER edge towards center felt [0, 0, 0]
         if (tileId >= 1 && tileId <= 9) {
-          ownerStrip.position.z += 1.25; // Bottom edge (near price)
+          ownerStrip.position.z -= 1.25; // Inner edge
         } else if (tileId >= 11 && tileId <= 19) {
-          ownerStrip.position.x -= 1.25; // Bottom edge
+          ownerStrip.position.x += 1.25; // Inner edge
           ownerStrip.rotation.y = Math.PI / 2;
         } else if (tileId >= 21 && tileId <= 29) {
-          ownerStrip.position.z -= 1.25; // Bottom edge
+          ownerStrip.position.z += 1.25; // Inner edge
         } else if (tileId >= 31 && tileId <= 39) {
-          ownerStrip.position.x += 1.25; // Bottom edge
+          ownerStrip.position.x -= 1.25; // Inner edge
           ownerStrip.rotation.y = Math.PI / 2;
         }
 
@@ -852,7 +853,7 @@ export default function Board3D({
         ownerMeshesRef.current[tileId] = ownerStrip;
       }
 
-      // Render 3D Houses / Hotels on top of the lot
+      // 3D Houses / Hotels placed neatly on the OUTER COLOR BAR
       if (prop.houses > 0) {
         const isHotel = prop.houses >= 5;
         const group = new THREE.Group();
@@ -873,7 +874,13 @@ export default function Board3D({
           }
         }
 
+        // Position on the OUTER color bar edge
         group.position.set(tilePos.x, 0.46, tilePos.z);
+        if (tileId >= 1 && tileId <= 9) group.position.z += 1.15;
+        else if (tileId >= 11 && tileId <= 19) group.position.x -= 1.15;
+        else if (tileId >= 21 && tileId <= 29) group.position.z -= 1.15;
+        else if (tileId >= 31 && tileId <= 39) group.position.x += 1.15;
+
         scene.add(group);
         houseMeshesRef.current[tileId] = group;
       }
