@@ -38,10 +38,10 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
   const totalJailEvents = logs.filter(l => l.type === "jail").length;
 
   useEffect(() => {
-    // Play authentic 1977 Star Wars soundtrack starting at 00:28 (fanfare blast)
+    // Play authentic 1977 Star Wars soundtrack starting at 00:29 (fanfare blast)
     try {
       const audio = new Audio("/sounds/star-wars-theme.mp4");
-      audio.currentTime = 28.0;
+      audio.currentTime = 29.0;
       audio.volume = 0.70;
       audio.play().catch(() => {});
       audioRef.current = audio;
