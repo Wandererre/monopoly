@@ -119,14 +119,9 @@ export class RoomManager {
     if (engine) {
       engine.removePlayer(playerId);
 
-      // If all players in the room are now disconnected, close the room
       const anyConnected = engine.players.some((p) => p.isConnected);
-      if (!anyConnected) {
-        console.log(`[Room Closed] All players disconnected from room ${roomId}. Room deleted.`);
-        this.rooms.delete(roomId);
-        this.broadcastPublicRooms();
-        this.socketToRoom.delete(socketId);
-        return;
+      if (!anyConnected && !engine.disconnectedAt) {
+        engine.disconnectedAt = Date.now();
       }
 
       this.broadcastGameState(roomId);
@@ -153,13 +148,20 @@ export class RoomManager {
   }
 
   tick() {
+    const now = Date.now();
     this.rooms.forEach((engine, roomId) => {
-      // Auto-cleanup orphaned rooms where no one is connected
       const anyConnected = engine.players.some((p) => p.isConnected);
-      if (!anyConnected) {
-        this.rooms.delete(roomId);
-        this.broadcastPublicRooms();
-        return;
+      if (anyConnected) {
+        engine.disconnectedAt = null;
+      } else {
+        if (!engine.disconnectedAt) engine.disconnectedAt = now;
+        // Clean up only after 90 seconds of continuous zero connections
+        if (now - engine.disconnectedAt > 90000) {
+          console.log(`[Room Cleanup] Room ${roomId} inactive with 0 connections for 90s. Deleting.`);
+          this.rooms.delete(roomId);
+          this.broadcastPublicRooms();
+          return;
+        }
       }
 
       if (!engine.gameStarted || engine.phase === "GAME_OVER") return;

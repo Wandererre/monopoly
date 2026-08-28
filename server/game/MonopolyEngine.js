@@ -129,16 +129,9 @@ export class MonopolyEngine {
     const p = this.players.find(pl => pl.id === playerId);
     if (!p) return;
 
-    if (!this.gameStarted) {
-      this.players = this.players.filter(pl => pl.id !== playerId);
-      if (p.isHost && this.players.length > 0) {
-        this.players[0].isHost = true;
-      }
-      this.addLog(`${p.name} left.`, "info");
-    } else {
-      p.isConnected = false;
-      this.addLog(`${p.name} disconnected.`, "info");
-    }
+    p.isConnected = false;
+    p.socketId = null;
+    this.addLog(`${p.name} disconnected.`, "info");
   }
 
   quitPlayer(playerId) {
