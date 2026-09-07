@@ -3,6 +3,7 @@ import { Copy, Check, Users, Play, Sparkles, AlertCircle, RefreshCw, Globe, Arro
 import { PLAYER_TOKENS } from "../../server/data/boardData.js";
 import { sounds } from "../utils/audio.js";
 import { socket } from "../utils/socket.js";
+import AdBanner from "./AdBanner.jsx";
 
 export default function Lobby({
   onCreateRoom,
@@ -21,7 +22,8 @@ export default function Lobby({
   onToggleMic,
   isDeafened = false,
   onToggleDeafen,
-  onOpenSettings
+  onOpenSettings,
+  onOpenLegal
 }) {
   const [name, setName] = useState(() => localStorage.getItem("vyapar_player_name") || "");
   const [selectedToken, setSelectedToken] = useState(() => {
@@ -141,11 +143,11 @@ export default function Lobby({
                 <span>Leave</span>
               </button>
             )}
-            <div className="inline-block bg-[#ED1B24] text-white font-black px-6 py-2 rounded-sm border-2 border-black shadow-md transform -rotate-1 mb-2">
-              <h1 className="text-3xl font-black font-['Cinzel'] tracking-wider">MONOPOLY</h1>
+            <div className="inline-block bg-[#0F172A] text-white font-black px-6 py-2 rounded-xl border-2 border-amber-500 shadow-md mb-2">
+              <h1 className="text-3xl font-black font-['Outfit'] tracking-wider">BUSINESS</h1>
             </div>
             <div className="text-xs font-black uppercase tracking-widest text-slate-800">
-              INDIA EDITION
+              PROPERTY BOARD GAME
             </div>
           </div>
 
@@ -316,7 +318,7 @@ export default function Lobby({
                   : "bg-slate-300 text-slate-500 border-slate-400 cursor-not-allowed"
               }`}
             >
-              {players.length >= 2 ? "Start Monopoly Game" : "Start Game (Solo / Testing)"}
+              {players.length >= 2 ? "Start Game" : "Start Game (Solo / Testing)"}
             </button>
           ) : (
             <div className="text-center p-3 bg-white rounded-xl border-2 border-black text-xs font-bold text-slate-700">
@@ -334,14 +336,14 @@ export default function Lobby({
       <div className="max-w-2xl w-full bg-[#FAF8F5] text-slate-900 rounded-3xl border-4 border-black p-6 sm:p-8 shadow-2xl shadow-black relative space-y-6">
         {/* Title Header */}
         <div className="text-center">
-          <div className="inline-block bg-[#ED1B24] text-white font-black px-8 py-2.5 rounded-sm border-3 border-black shadow-lg transform -rotate-1 mb-2">
-            <h1 className="text-4xl sm:text-5xl font-black font-['Cinzel'] tracking-wider">MONOPOLY</h1>
+          <div className="inline-block bg-[#0F172A] text-white font-black px-8 py-2.5 rounded-xl border-3 border-amber-500 shadow-lg mb-2">
+            <h1 className="text-4xl sm:text-5xl font-black font-['Outfit'] tracking-wider">BUSINESS</h1>
           </div>
-          <div className="text-sm font-black uppercase tracking-widest text-slate-800">
-            INDIA EDITION
+          <div className="text-sm font-black uppercase tracking-widest text-amber-900">
+            PROPERTY BOARD GAME
           </div>
           <p className="text-xs text-slate-600 mt-1 font-medium">
-            Multiplayer Online Monopoly. Create a room or click an open room below to join!
+            Multiplayer Online Property Trading Game. Create a room or click an open room below to join!
           </p>
         </div>
 
@@ -520,6 +522,37 @@ export default function Lobby({
               ))}
             </div>
           )}
+        </div>
+
+        {/* AdSense Slot for Lobby */}
+        <AdBanner slot="1234567890" className="mt-4" />
+
+        {/* Footer Legal Links for AdSense Compliance */}
+        <div className="pt-4 border-t border-slate-300 flex flex-wrap items-center justify-between text-[11px] text-slate-600 font-semibold gap-2">
+          <span>© 2026 Business: Property Board Game</span>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => onOpenLegal && onOpenLegal("privacy")}
+              className="hover:text-slate-950 underline transition cursor-pointer"
+            >
+              Privacy Policy
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenLegal && onOpenLegal("terms")}
+              className="hover:text-slate-950 underline transition cursor-pointer"
+            >
+              Terms of Service
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenLegal && onOpenLegal("contact")}
+              className="hover:text-slate-950 underline transition cursor-pointer"
+            >
+              Contact
+            </button>
+          </div>
         </div>
       </div>
     </div>

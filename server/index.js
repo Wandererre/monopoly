@@ -30,6 +30,12 @@ const distPath = path.join(__dirname, "../dist");
 app.use(express.static(distPath));
 
 // API Endpoints
+app.get("/ads.txt", (req, res) => {
+  const pubId = process.env.ADSENSE_PUB_ID || "pub-0000000000000000";
+  res.type("text/plain");
+  res.send(`google.com, ${pubId}, DIRECT, f08c47fec0942fa0\n`);
+});
+
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", activeRooms: roomManager.rooms.size });
 });

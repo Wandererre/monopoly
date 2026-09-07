@@ -249,7 +249,7 @@ export default function DeedsBrowserModal({
         {/* Footer */}
         <div className="p-3 bg-slate-200 border-t-2 border-black flex items-center justify-between">
           <div className="text-xs text-slate-600 font-medium">
-            Standard Hasbro Monopoly rent rules & multipliers apply.
+            Standard property rent rules & color set multipliers apply.
           </div>
           {!isViewingSelf && (
             <button

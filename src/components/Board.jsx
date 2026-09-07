@@ -186,8 +186,8 @@ export default function Board({
           className="cursor-pointer hover:opacity-80 transition-opacity"
         >
           <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(0, 114, 187, 0.12)" stroke="#0072BB" strokeWidth="2.5" strokeDasharray="6 4" />
-          <text x="70" y="28" textAnchor="middle" fontSize="11" fontWeight="900" fill="#0072BB">COMMUNITY CHEST</text>
-          <text x="70" y="64" textAnchor="middle" fontSize="28">📦</text>
+          <text x="70" y="28" textAnchor="middle" fontSize="13" fontWeight="900" fill="#0072BB">TREASURY</text>
+          <text x="70" y="64" textAnchor="middle" fontSize="28">🏛️</text>
           <text x="70" y="80" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#0072BB">CLICK TO VIEW</text>
         </g>
 
@@ -200,8 +200,8 @@ export default function Board({
           className="cursor-pointer hover:opacity-80 transition-opacity"
         >
           <rect x="0" y="0" width="140" height="90" rx="10" fill="rgba(247, 147, 30, 0.12)" stroke="#F7931E" strokeWidth="2.5" strokeDasharray="6 4" />
-          <text x="70" y="28" textAnchor="middle" fontSize="13" fontWeight="900" fill="#F7931E">CHANCE</text>
-          <text x="70" y="64" textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">?</text>
+          <text x="70" y="28" textAnchor="middle" fontSize="13" fontWeight="900" fill="#F7931E">FORTUNE</text>
+          <text x="70" y="64" textAnchor="middle" fontSize="36" fontWeight="900" fill="#F7931E">⭐</text>
           <text x="70" y="80" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#F7931E">CLICK TO VIEW</text>
         </g>
 
@@ -215,15 +215,15 @@ export default function Board({
 
           // 1. CORNER TILES (Exact 45° Diagonals)
           if (tile.id === 0) {
-            // GO (Bottom-Right)
+            // START (Bottom-Right)
             return (
               <g key={tile.id} onClick={() => onTileClick(tile)} className="cursor-pointer">
                 <rect x={b.x} y={b.y} width={b.w} height={b.h} fill="#CBE7D0" stroke="#000" strokeWidth="2.5" />
                 <g transform={`translate(${b.x + CORNER / 2}, ${b.y + CORNER / 2}) rotate(-45)`}>
-                  <text x="0" y="-38" textAnchor="middle" fontSize="10.5" fontWeight="900" fill="#000">COLLECT M200 SALARY</text>
+                  <text x="0" y="-38" textAnchor="middle" fontSize="10.5" fontWeight="900" fill="#000">COLLECT 200 SALARY</text>
                   <text x="0" y="-24" textAnchor="middle" fontSize="10.5" fontWeight="900" fill="#000">AS YOU PASS</text>
-                  <text x="0" y="24" textAnchor="middle" fontSize="56" fontWeight="900" fill="#000" letterSpacing="-3">GO</text>
-                  <path d="M -55 36 L 38 36 L 38 28 L 60 42 L 38 56 L 38 48 L -55 48 Z" fill="#ED1B24" stroke="#000" strokeWidth="1.5" />
+                  <text x="0" y="24" textAnchor="middle" fontSize="48" fontWeight="900" fill="#16A34A" letterSpacing="-2">START</text>
+                  <path d="M -55 36 L 38 36 L 38 28 L 60 42 L 38 56 L 38 48 L -55 48 Z" fill="#16A34A" stroke="#000" strokeWidth="1.5" />
                 </g>
               </g>
             );
@@ -524,13 +524,13 @@ export default function Board({
         <div className="h-2" />
 
         <div className="flex flex-col items-center justify-center my-auto pointer-events-auto">
-          <div className="bg-[#ED1B24] border-2 sm:border-3 border-black px-6 sm:px-10 py-1 sm:py-2 rounded-sm shadow-2xl transform -rotate-1">
-            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-wider font-['Cinzel'] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-              MONOPOLY
+          <div className="bg-[#0F172A] border-2 sm:border-3 border-amber-500 px-6 sm:px-10 py-1.5 sm:py-2.5 rounded-xl shadow-2xl">
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-wider font-['Outfit'] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+              BUSINESS
             </h1>
           </div>
-          <div className="text-center mt-0.5 font-black text-xs sm:text-sm uppercase tracking-widest text-slate-900 drop-shadow">
-            ★ INDIA EDITION ★
+          <div className="text-center mt-1 font-black text-xs sm:text-sm uppercase tracking-widest text-amber-900 drop-shadow">
+            ★ PROPERTY BOARD GAME ★
           </div>
 
           {/* 3D Dice */}

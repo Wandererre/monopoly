@@ -1,10 +1,10 @@
 export const BOARD_TILES = [
   {
     id: 0,
-    name: "GO",
+    name: "START",
     type: "go",
-    subtitle: "COLLECT M200 SALARY AS YOU PASS",
-    description: "Collect M200 salary as you pass."
+    subtitle: "COLLECT 200 AS YOU PASS",
+    description: "Collect 200 salary as you pass."
   },
   {
     id: 1,
@@ -18,10 +18,10 @@ export const BOARD_TILES = [
   },
   {
     id: 2,
-    name: "COMMUNITY CHEST",
+    name: "TREASURY",
     type: "community_chest",
-    subtitle: "Community Chest",
-    description: "Follow instructions on top card."
+    subtitle: "Treasury",
+    description: "Draw a Treasury card."
   },
   {
     id: 3,
@@ -62,10 +62,10 @@ export const BOARD_TILES = [
   },
   {
     id: 7,
-    name: "CHANCE",
+    name: "FORTUNE",
     type: "chance",
-    subtitle: "Chance",
-    description: "Draw a Chance card."
+    subtitle: "Fortune",
+    description: "Draw a Fortune card."
   },
   {
     id: 8,
@@ -154,10 +154,10 @@ export const BOARD_TILES = [
   },
   {
     id: 17,
-    name: "COMMUNITY CHEST",
+    name: "TREASURY",
     type: "community_chest",
-    subtitle: "Community Chest",
-    description: "Follow instructions on top card."
+    subtitle: "Treasury",
+    description: "Draw a Treasury card."
   },
   {
     id: 18,
@@ -198,10 +198,10 @@ export const BOARD_TILES = [
   },
   {
     id: 22,
-    name: "CHANCE",
+    name: "FORTUNE",
     type: "chance",
-    subtitle: "Chance",
-    description: "Draw a Chance card."
+    subtitle: "Fortune",
+    description: "Draw a Fortune card."
   },
   {
     id: 23,
@@ -300,10 +300,10 @@ export const BOARD_TILES = [
   },
   {
     id: 33,
-    name: "COMMUNITY CHEST",
+    name: "TREASURY",
     type: "community_chest",
-    subtitle: "Community Chest",
-    description: "Follow instructions on top card."
+    subtitle: "Treasury",
+    description: "Draw a Treasury card."
   },
   {
     id: 34,
@@ -326,10 +326,10 @@ export const BOARD_TILES = [
   },
   {
     id: 36,
-    name: "CHANCE",
+    name: "FORTUNE",
     type: "chance",
-    subtitle: "Chance",
-    description: "Draw a Chance card."
+    subtitle: "Fortune",
+    description: "Draw a Fortune card."
   },
   {
     id: 37,
@@ -377,8 +377,8 @@ export const COLOR_GROUPS = {
 export const CHANCE_CARDS = [
   {
     id: "ch_advance_go",
-    title: "Advance to GO",
-    description: "Advance to GO. Collect M200.",
+    title: "Advance to START",
+    description: "Advance to START. Collect 200.",
     action: "advance_tile",
     targetTile: 0,
     collectGo: true
@@ -386,7 +386,7 @@ export const CHANCE_CARDS = [
   {
     id: "ch_advance_mumbai",
     title: "Advance to Mumbai",
-    description: "Advance to Mumbai. If you pass GO, collect M200.",
+    description: "Advance to Mumbai. If you pass START, collect 200.",
     action: "advance_tile",
     targetTile: 39,
     collectGo: true
@@ -394,14 +394,14 @@ export const CHANCE_CARDS = [
   {
     id: "ch_advance_cst",
     title: "Advance to C.S.T. Mumbai",
-    description: "Advance to Chhatrapati Shivaji Terminus. If you pass GO, collect M200.",
+    description: "Advance to Chhatrapati Shivaji Terminus. If you pass START, collect 200.",
     action: "advance_tile",
     targetTile: 35,
     collectGo: true
   },
   {
     id: "ch_advance_utility",
-    title: "Advance to Nearest Utility",
+    title: "Advance to Utility",
     description: "Advance token to Electric Company. If unowned, you may buy it from the Bank.",
     action: "advance_tile",
     targetTile: 12,
@@ -409,63 +409,63 @@ export const CHANCE_CARDS = [
   },
   {
     id: "ch_bank_dividend",
-    title: "Bank Pays You Dividend",
-    description: "Bank pays you dividend of M50.",
+    title: "Corporate Dividend",
+    description: "Corporate portfolio pays a dividend of 50.",
     action: "receive_money",
     amount: 50
   },
   {
     id: "ch_building_loan",
-    title: "Building Loan Matures",
-    description: "Your building loan matures. Collect M150.",
+    title: "Commercial Loan Matures",
+    description: "Your commercial development loan matures. Collect 150.",
     action: "receive_money",
     amount: 150
   },
   {
     id: "ch_speeding_fine",
-    title: "Speeding Fine",
-    description: "Pay speeding fine of M15.",
+    title: "Traffic Violation",
+    description: "Commercial transit fine. Pay 15.",
     action: "pay_money",
     amount: 15
   },
   {
     id: "ch_school_fees",
-    title: "Pay School Fees",
-    description: "Pay school fees of M150.",
+    title: "Education Grant",
+    description: "Executive training and certification fees. Pay 150.",
     action: "pay_money",
     amount: 150
   },
   {
     id: "ch_chairman",
-    title: "Elected Chairman of the Board",
-    description: "You have been elected Chairman of the Board. Pay each player M50.",
+    title: "Elected Board Chairman",
+    description: "Elected Chairman of the Board. Pay each executive 50.",
     action: "pay_to_all",
     amount: 50
   },
   {
     id: "ch_general_repairs",
-    title: "Make General Repairs",
-    description: "Make general repairs on all your property: For each house pay M25, for each hotel pay M100.",
+    title: "Building Maintenance",
+    description: "General property maintenance: Pay 25 per house, 100 per hotel.",
     action: "property_repairs",
     houseCost: 25,
     hotelCost: 100
   },
   {
     id: "ch_jail_free",
-    title: "Get Out of Jail Free",
-    description: "This card may be kept until needed or traded.",
+    title: "Bail Pass",
+    description: "Legal immunity pass. May be kept until needed or traded.",
     action: "get_out_of_jail_card"
   },
   {
     id: "ch_go_to_jail",
     title: "Go to Jail",
-    description: "Go directly to Jail. Do not pass GO, do not collect M200.",
+    description: "Go directly to Jail. Do not pass START, do not collect 200.",
     action: "go_to_jail"
   },
   {
     id: "ch_go_back_3",
-    title: "Go Back 3 Spaces",
-    description: "Go back 3 spaces.",
+    title: "Market Correction",
+    description: "Temporary economic contraction. Go back 3 spaces.",
     action: "move_relative",
     steps: -3
   }
@@ -474,106 +474,106 @@ export const CHANCE_CARDS = [
 export const COMMUNITY_CARDS = [
   {
     id: "cc_advance_go",
-    title: "Advance to GO",
-    description: "Advance to GO. Collect M200.",
+    title: "Advance to START",
+    description: "Advance to START. Collect 200.",
     action: "advance_tile",
     targetTile: 0,
     collectGo: true
   },
   {
     id: "cc_bank_error",
-    title: "Bank Error in Your Favour",
-    description: "Bank error in your favour. Collect M200.",
+    title: "Bank Credit Adjustment",
+    description: "Bank error in your favour. Collect 200.",
     action: "receive_money",
     amount: 200
   },
   {
     id: "cc_doctor_fee",
-    title: "Doctor's Fee",
-    description: "Doctor's fee. Pay M50.",
+    title: "Medical Insurance",
+    description: "Annual health and medical insurance premium. Pay 50.",
     action: "pay_money",
     amount: 50
   },
   {
     id: "cc_stock_sale",
-    title: "From Sale of Stock",
-    description: "From sale of stock you get M50.",
+    title: "Stock Market Gain",
+    description: "Profitable sale of company stock. Collect 50.",
     action: "receive_money",
     amount: 50
   },
   {
     id: "cc_jail_free",
-    title: "Get Out of Jail Free",
-    description: "This card may be kept until needed or traded.",
+    title: "Bail Pass",
+    description: "Legal immunity pass. May be kept until needed or traded.",
     action: "get_out_of_jail_card"
   },
   {
     id: "cc_go_to_jail",
     title: "Go to Jail",
-    description: "Go directly to Jail. Do not pass GO, do not collect M200.",
+    description: "Go directly to Jail. Do not pass START, do not collect 200.",
     action: "go_to_jail"
   },
   {
     id: "cc_holiday_fund",
-    title: "Holiday Fund Matures",
-    description: "Holiday fund matures. Receive M100.",
+    title: "Treasury Bond Matures",
+    description: "Government treasury bond matures. Receive 100.",
     action: "receive_money",
     amount: 100
   },
   {
     id: "cc_income_tax_refund",
     title: "Income Tax Refund",
-    description: "Income tax refund. Collect M20.",
+    description: "Government tax refund processed. Collect 20.",
     action: "receive_money",
     amount: 20
   },
   {
     id: "cc_birthday",
-    title: "It's Your Birthday",
-    description: "It is your birthday. Collect M10 from every player.",
+    title: "Company Anniversary",
+    description: "Annual company founding milestone. Collect 10 from every player.",
     action: "collect_from_all",
     amount: 10
   },
   {
     id: "cc_life_insurance",
-    title: "Life Insurance Matures",
-    description: "Life insurance matures. Collect M100.",
+    title: "Policy Maturity",
+    description: "Life insurance investment plan matures. Collect 100.",
     action: "receive_money",
     amount: 100
   },
   {
     id: "cc_hospital_fee",
-    title: "Pay Hospital Fees",
-    description: "Pay hospital fees of M100.",
+    title: "Clinic Facility Fee",
+    description: "Corporate wellness and medical expenses. Pay 100.",
     action: "pay_money",
     amount: 100
   },
   {
     id: "cc_consultancy_fee",
-    title: "Receive Consultancy Fee",
-    description: "Receive M25 consultancy fee.",
+    title: "Consultancy Retainer",
+    description: "Professional advisory fee received. Collect 25.",
     action: "receive_money",
     amount: 25
   },
   {
     id: "cc_street_repairs",
-    title: "Assessed for Street Repairs",
-    description: "You are assessed for street repairs: M40 per house, M115 per hotel.",
+    title: "Property Renovation",
+    description: "Municipal infrastructure assessment: Pay 40 per house, 115 per hotel.",
     action: "property_repairs",
     houseCost: 40,
     hotelCost: 115
   },
   {
     id: "cc_beauty_contest",
-    title: "Second Prize in Beauty Contest",
-    description: "You have won second prize in a beauty contest. Collect M10.",
+    title: "Innovation Award",
+    description: "Won business excellence award at trade summit. Collect 10.",
     action: "receive_money",
     amount: 10
   },
   {
     id: "cc_inheritance",
-    title: "You Inherit M100",
-    description: "You inherit M100.",
+    title: "Estate Distribution",
+    description: "Asset distribution from family estate. Collect 100.",
     action: "receive_money",
     amount: 100
   }

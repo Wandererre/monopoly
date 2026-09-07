@@ -17,6 +17,8 @@ import GameOverModal from "./components/GameOverModal.jsx";
 import SoundboardModal from "./components/SoundboardModal.jsx";
 import CardsBrowserModal from "./components/CardsBrowserModal.jsx";
 import SettingsModal from "./components/SettingsModal.jsx";
+import LegalModal from "./components/LegalModal.jsx";
+import CookieBanner from "./components/CookieBanner.jsx";
 import { PLAYER_TOKENS, BOARD_TILES } from "../server/data/boardData.js";
 import {
   Copy,
@@ -85,6 +87,8 @@ export default function App() {
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [incomingTradeModalOpen, setIncomingTradeModalOpen] = useState(false);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState("privacy");
 
   // Multi-Transaction Array State: playerId -> Array of { id, delta }
   const [transactions, setTransactions] = useState({});
@@ -717,6 +721,10 @@ export default function App() {
           isDeafened={isDeafened}
           onToggleDeafen={handleToggleDeafen}
           onOpenSettings={() => setSettingsModalOpen(true)}
+          onOpenLegal={(tab) => {
+            setLegalTab(tab || "privacy");
+            setLegalModalOpen(true);
+          }}
         />
 
         <SettingsModal
@@ -752,13 +760,13 @@ export default function App() {
     <div className="min-h-screen bg-[#1F2421] text-slate-100 flex flex-col justify-between select-none relative overflow-hidden">
       {/* Top Seamless Bar - Pinned Left/Right Controls with Responsive Center Player Chips */}
       <header className="px-3 pt-2 pb-6 z-30 flex items-center justify-between gap-2 overflow-x-hidden w-full max-w-7xl mx-auto">
-        {/* Left: Monopoly Logo */}
+        {/* Left: Business Logo */}
         <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 z-30">
-          <div className="bg-[#ED1B24] text-white font-black px-2.5 py-1 rounded-sm border-2 border-black text-xs sm:text-sm font-['Cinzel'] tracking-wider shadow-md">
-            MONOPOLY
+          <div className="bg-[#0F172A] text-white font-black px-2.5 py-1 rounded-xl border-2 border-amber-500 text-xs sm:text-sm font-['Outfit'] tracking-wider shadow-md">
+            BUSINESS
           </div>
-          <span className="text-[10px] uppercase font-black tracking-widest text-slate-300 hidden lg:inline">
-            INDIA
+          <span className="text-[10px] uppercase font-black tracking-widest text-amber-400 hidden lg:inline">
+            GAME
           </span>
         </div>
 
@@ -1182,6 +1190,20 @@ export default function App() {
         isOpen={activityDrawerOpen}
         onClose={() => setActivityDrawerOpen(false)}
         logs={gameState.logs}
+      />
+
+      {/* AdSense Legal Modal & Cookie Consent */}
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalTab}
+      />
+
+      <CookieBanner
+        onOpenPrivacy={() => {
+          setLegalTab("privacy");
+          setLegalModalOpen(true);
+        }}
       />
     </div>
   );

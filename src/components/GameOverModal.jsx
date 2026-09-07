@@ -107,7 +107,7 @@ export default function GameOverModal({ winner, players = [], gameState = {}, on
               fontFamily: "'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif"
             }}
           >
-            MONOPOLY
+            BUSINESS
           </h1>
           <div
             className="text-2xl sm:text-4xl font-bold tracking-[0.35em] text-[#FFE81F] mt-4 uppercase text-center"

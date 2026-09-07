@@ -108,17 +108,16 @@ function createTileTexture(tile, isCorner) {
     ctx.fillStyle = "#EA580C";
     ctx.font = "900 34px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("CHANCE", canvas.width / 2, 100);
+    ctx.fillText("FORTUNE", canvas.width / 2, 100);
     ctx.font = "110px sans-serif";
-    ctx.fillText("❓", canvas.width / 2, 290);
+    ctx.fillText("⭐", canvas.width / 2, 290);
   } else if (tile.type === "community_chest") {
     ctx.fillStyle = "#1E40AF";
-    ctx.font = "900 30px sans-serif";
+    ctx.font = "900 34px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("COMMUNITY", canvas.width / 2, 85);
-    ctx.fillText("CHEST", canvas.width / 2, 125);
+    ctx.fillText("TREASURY", canvas.width / 2, 105);
     ctx.font = "110px sans-serif";
-    ctx.fillText("📦", canvas.width / 2, 295);
+    ctx.fillText("🏛️", canvas.width / 2, 295);
   } else if (tile.type === "tax") {
     ctx.fillStyle = "#DC2626";
     ctx.font = "900 30px sans-serif";
@@ -129,13 +128,13 @@ function createTileTexture(tile, isCorner) {
     ctx.font = "900 30px monospace";
     ctx.fillText("PAY M" + tile.amount, canvas.width / 2, 435);
   } else if (tile.id === 0) {
-    ctx.fillStyle = "#DC2626";
-    ctx.font = "900 96px sans-serif";
+    ctx.fillStyle = "#16A34A";
+    ctx.font = "900 80px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("GO", canvas.width / 2, 220);
-    ctx.font = "900 30px sans-serif";
+    ctx.fillText("START", canvas.width / 2, 220);
+    ctx.font = "900 28px sans-serif";
     ctx.fillStyle = "#000000";
-    ctx.fillText("COLLECT M200", canvas.width / 2, 330);
+    ctx.fillText("COLLECT 200", canvas.width / 2, 330);
     ctx.fillText("AS YOU PASS", canvas.width / 2, 375);
     ctx.font = "70px sans-serif";
     ctx.fillText("⬅️", canvas.width / 2, 450);
@@ -381,23 +380,23 @@ export default function Board3D({
     feltMesh.receiveShadow = true;
     scene.add(feltMesh);
 
-    // Center Monopoly Logo
+    // Center Business Logo
     const logoCanvas = document.createElement("canvas");
     logoCanvas.width = 512;
     logoCanvas.height = 512;
     const lctx = logoCanvas.getContext("2d");
-    lctx.fillStyle = "#ED1B24";
-    lctx.fillRect(40, 190, 432, 130);
-    lctx.strokeStyle = "#000000";
-    lctx.lineWidth = 12;
-    lctx.strokeRect(40, 190, 432, 130);
+    lctx.fillStyle = "#0F172A";
+    lctx.fillRect(36, 185, 440, 140);
+    lctx.strokeStyle = "#F59E0B";
+    lctx.lineWidth = 8;
+    lctx.strokeRect(36, 185, 440, 140);
     lctx.fillStyle = "#FFFFFF";
-    lctx.font = "900 70px sans-serif";
+    lctx.font = "900 66px sans-serif";
     lctx.textAlign = "center";
-    lctx.fillText("MONOPOLY", 256, 280);
-    lctx.fillStyle = "#FBBF24";
-    lctx.font = "900 30px sans-serif";
-    lctx.fillText("★ INDIA EDITION ★", 256, 360);
+    lctx.fillText("BUSINESS", 256, 275);
+    lctx.fillStyle = "#F59E0B";
+    lctx.font = "900 24px sans-serif";
+    lctx.fillText("★ PROPERTY BOARD GAME ★", 256, 360);
 
     const logoTexture = new THREE.CanvasTexture(logoCanvas);
     logoTexture.colorSpace = THREE.SRGBColorSpace;
@@ -408,19 +407,19 @@ export default function Board3D({
     logoMesh.position.y = 0.42;
     scene.add(logoMesh);
 
-    // 3. Interactive Center 3D Card Decks (CHANCE & COMMUNITY CHEST)
+    // 3. Interactive Center 3D Card Decks (FORTUNE & TREASURY)
     const cardGroup = new THREE.Group();
     cardGroup.name = "CARD_DECKS_GROUP";
 
-    // Chance Deck (Orange)
+    // Fortune Deck (Orange)
     const chanceCanvas = document.createElement("canvas");
     chanceCanvas.width = 256; chanceCanvas.height = 384;
     const cctx = chanceCanvas.getContext("2d");
     cctx.fillStyle = "#EA580C"; cctx.fillRect(0, 0, 256, 384);
     cctx.strokeStyle = "#FFFFFF"; cctx.lineWidth = 12; cctx.strokeRect(10, 10, 236, 364);
     cctx.fillStyle = "#FFFFFF"; cctx.font = "900 36px sans-serif"; cctx.textAlign = "center";
-    cctx.fillText("CHANCE", 128, 90);
-    cctx.font = "110px sans-serif"; cctx.fillText("❓", 128, 240);
+    cctx.fillText("FORTUNE", 128, 90);
+    cctx.font = "110px sans-serif"; cctx.fillText("⭐", 128, 240);
     const chanceTex = new THREE.CanvasTexture(chanceCanvas);
     chanceTex.colorSpace = THREE.SRGBColorSpace;
     const chanceDeck = new THREE.Mesh(
@@ -439,16 +438,15 @@ export default function Board3D({
     chanceDeck.userData = { cardType: "chance" };
     cardGroup.add(chanceDeck);
 
-    // Community Chest Deck (Blue)
+    // Treasury Deck (Blue)
     const chestCanvas = document.createElement("canvas");
     chestCanvas.width = 256; chestCanvas.height = 384;
     const chctx = chestCanvas.getContext("2d");
     chctx.fillStyle = "#1E40AF"; chctx.fillRect(0, 0, 256, 384);
     chctx.strokeStyle = "#FFFFFF"; chctx.lineWidth = 12; chctx.strokeRect(10, 10, 236, 364);
-    chctx.fillStyle = "#FFFFFF"; chctx.font = "900 32px sans-serif"; chctx.textAlign = "center";
-    chctx.fillText("COMMUNITY", 128, 70);
-    chctx.fillText("CHEST", 128, 110);
-    chctx.font = "110px sans-serif"; chctx.fillText("📦", 128, 250);
+    chctx.fillStyle = "#FFFFFF"; chctx.font = "900 34px sans-serif"; chctx.textAlign = "center";
+    chctx.fillText("TREASURY", 128, 90);
+    chctx.font = "110px sans-serif"; chctx.fillText("🏛️", 128, 240);
     const chestTex = new THREE.CanvasTexture(chestCanvas);
     chestTex.colorSpace = THREE.SRGBColorSpace;
     const chestDeck = new THREE.Mesh(
